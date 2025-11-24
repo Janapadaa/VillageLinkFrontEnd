@@ -64,3 +64,6 @@ yarn-error.log
 
 # testing
 /coverage
+
+android/app/google-services.json
+src/components/googlekey.js

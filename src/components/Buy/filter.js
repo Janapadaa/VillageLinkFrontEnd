@@ -7,6 +7,7 @@ import { GooglePlacesAutocomplete } from 'react-native-google-places-autocomplet
 import Toast from 'react-native-toast-message'; // Add this line
 import { Dropdown } from 'react-native-element-dropdown';
 import RNFS from 'react-native-fs';
+import { GOOGLE_API_KEY } from "../googlekey";
 
 const Filter = ({ navigation, navigation: { goBack }, route }) => {
   const Id = route?.params?.id
@@ -225,7 +226,7 @@ console.log("loggggg",log);
             }}
             fetchDetails={true}
             query={{
-              key: 'AIzaSyCAVZr638AD5Welu4kHBGaPbYkHxy1-fIU',
+              key: GOOGLE_API_KEY,
               language: 'en',
               components: 'country:in',
             }}

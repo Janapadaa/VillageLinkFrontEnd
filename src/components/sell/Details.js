@@ -12,6 +12,7 @@ import { ALERT_TYPE, Dialog, AlertNotificationRoot, } from "react-native-alert-n
 import Toast from 'react-native-toast-message'; // Add this line
 import Geolocation from 'react-native-geolocation-service';
 import RNFS from 'react-native-fs';
+import { GOOGLE_API_KEY } from '../googlekey';
 
 
 const Details = ({ navigation, navigation: { goBack }, route }) => {
@@ -714,7 +715,7 @@ const Details = ({ navigation, navigation: { goBack }, route }) => {
                             }}
                             fetchDetails={true}
                             query={{
-                                key: 'AIzaSyCAVZr638AD5Welu4kHBGaPbYkHxy1-fIU',
+                                key: GOOGLE_API_KEY,
                                 language: 'en',
                                 components: 'country:in',
                             }}
@@ -1135,7 +1136,7 @@ const Details = ({ navigation, navigation: { goBack }, route }) => {
                             fetchDetails={true}
 
                             query={{
-                                key: 'AIzaSyCAVZr638AD5Welu4kHBGaPbYkHxy1-fIU',
+                                key: GOOGLE_API_KEY,
                                 language: 'en',
                                 components: 'country:in',
                             }}

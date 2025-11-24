@@ -537,40 +537,7 @@ const UploadImages = ({ navigation, navigation: { goBack }, route }) => {
                        }
                     rightTextStyle={{ fontSize: 16, color: 'black' }}
                 />
-                {/* <View style={{ width: '50%', top: '13%' }}>
-                        <Text style={styles.detailsText}>
-                            Location
-                        </Text>
-                        <GooglePlacesAutocomplete
-                            placeholder="Search for a location"
-                            onPress={(data, details = null) => {
-                                console.log("location",data);
-                                // handleFarmEquipmentsAttributeChange('location', data.description);
-                            }}
-                            
-                            query={{
-                                key: 'AIzaSyCAVZr638AD5Welu4kHBGaPbYkHxy1-fIU',
-                                language: 'en', // Optional: Specify the language of the results
-                                components: 'country:in', // Limit results to India
-                            }}
-                            onFail={error => console.log("error",error)}
-                            styles={{
-                                container: {
-                                    flex: 0 ,
-                                },
-                                listView: {
-                                  position:'absolute',
-                                    top: 55,
-                                    left: 10,
-                                    right: 10,
-                                    backgroundColor: 'white',
-                                    borderRadius: 5,
-                                    elevation: 3,
-                                    zIndex: 1000,
-                                },
-                            }}
-                        />
-                    </View> */}
+                
 
             </View>
 
