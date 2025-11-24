@@ -23,7 +23,7 @@ const OnBoarding4 = () => {
                 High protein nutrients and food
                 </Text>
                 <Text style={styles.welcometext}>
-                are availaable at janapada
+                are availaable at Village Link
                 </Text>
             </View>
                 

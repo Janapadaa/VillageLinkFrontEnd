@@ -1,12 +1,18 @@
-import React from "react";
+import React,{useEffect,useState} from "react";
 import { View, StyleSheet, Image, Text, TouchableOpacity } from "react-native";
 import { useNavigation } from '@react-navigation/native';
+import RNFS from 'react-native-fs';
+import { useLanguage } from "./Api/LanguageContext";
 
 const OnBoarding7 = () => {
+    const { languageData } = useLanguage();
     const navigation = useNavigation();
     const handleSubmit = () => {
-        navigation.navigate('privacypolicy');
+      navigation.navigate('otpscreen');
+
+        // navigation.navigate('privacypolicy');
       }
+     
     return (
         <View style={styles.body}>
             <View style={{alignItems:'center',top:'10%'}}>
@@ -17,10 +23,12 @@ const OnBoarding7 = () => {
             </View>
             <View style={{alignItems:'center',top:'60%'}}>
             <Text style={styles.text}>
-            Customer support
+            {languageData?.intro_screen_4?.title}
+
                 </Text>
                 <Text style={styles.welcometext}>
-                Request call back
+                {languageData?.intro_screen_4?.content}
+
                 </Text>
             </View>
             <View style={{
@@ -47,8 +55,8 @@ const OnBoarding7 = () => {
 
 const styles = StyleSheet.create({
     body: {
-        backgroundColor: "#F8FFEF",
-        flex: 1,
+      backgroundColor: '#FFFFFF',
+      flex: 1,
         width: '100%',
      
     },

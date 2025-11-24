@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "820780800075",
+    "project_id": "janapada-villagelink",
+    "storage_bucket": "janapada-villagelink.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:820780800075:android:3969716eac7dc01cd5d5ce",
+        "android_client_info": {
+          "package_name": "com.janapada.villagelink"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCZKLgefnUZY8sEyw9I9x8UTBfITZbWyO0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

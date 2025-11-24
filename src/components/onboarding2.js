@@ -1,7 +1,17 @@
-import React from "react";
+import React,{useEffect,useState} from "react";
 import { View, StyleSheet, Image, Text, TouchableOpacity } from "react-native";
+import { useNavigation } from '@react-navigation/native';
+import RNFS from 'react-native-fs';
+import { useLanguage } from "./Api/LanguageContext";
 
 const OnBoarding2 = () => {
+     const { languageData } = useLanguage();
+    const navigation = useNavigation();
+   
+    const skip = () => {
+        navigation.navigate('otpscreen');
+        // navigation.navigate('privacypolicy');
+      }
     return (
         <View style={styles.body}>
             <View style={{alignItems:'center',top:'10%'}}>
@@ -16,16 +26,26 @@ const OnBoarding2 = () => {
                 />
             <View style={{alignItems:'center',top:'60%'}}>
             <Text style={styles.text}>
-            Buy and Sell Your Cattle
+            {languageData?.intro_screen_2?.title}
+
 
                 </Text>
                 <Text style={styles.welcometext}>
-                Janapaada is a your one -stop    
+                {languageData?.intro_screen_2?.content}
                 </Text>
-                <Text style={styles.welcometext}>
-                Former marketplace
-                </Text>
+                {/* <Text style={styles.welcometext}>
+                The Rural E-Market Place
+                </Text> */}
             </View>
+            <TouchableOpacity style={{alignItems:'center',top:'70%'}}>
+                <Text style={{ fontSize: 16,
+        fontWeight: '600',
+        color: '#35672D',
+        textDecorationLine: 'underline',}}
+        onPress={() => { skip() }}>
+                {languageData?.intro_screen_2?.skipText}
+                </Text>
+            </TouchableOpacity>
                 
             
                 
@@ -38,7 +58,7 @@ const OnBoarding2 = () => {
 
 const styles = StyleSheet.create({
     body: {
-        backgroundColor: "#F8FFEF",
+        backgroundColor: '#FFFFFF',
         flex: 1,
         width: '100%',
        

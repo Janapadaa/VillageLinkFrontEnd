@@ -3,7 +3,10 @@ import { View, Alert, StyleSheet, Image, Text, TouchableOpacity, PermissionsAndr
 // import WebView from 'react-native-webview';
 import Geolocation from '@react-native-community/geolocation';
 import axios from 'axios';
-import { BASE_URL,API_KEY,ACCEPT_LANGUAGE,getAccessToken } from "./Api/apiConfig";
+import { ALERT_TYPE, Dialog, AlertNotificationRoot,  } from "react-native-alert-notification";
+import { BASE_URL,API_KEY,ACCEPT_LANGUAGE,getAccessToken,getAcceptLanguage } from "./Api/apiConfig";
+import { promptForEnableLocationIfNeeded } from 'react-native-android-location-enabler';
+
 const FindMyLocation = ({navigation, navigation: { goBack }}) => {
   const [position, setPosition] = useState(null);
 
@@ -12,6 +15,7 @@ const FindMyLocation = ({navigation, navigation: { goBack }}) => {
 
     try {
       const accessToken = await getAccessToken(); // Await the token retrieval
+      const lang = await getAcceptLanguage();
 
       const response = await axios.put(
         `${BASE_URL}/user/location`,
@@ -23,7 +27,7 @@ const FindMyLocation = ({navigation, navigation: { goBack }}) => {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${accessToken}`,
             'x-api-key': API_KEY,
-            'Accept-Language': ACCEPT_LANGUAGE,
+            'Accept-Language': lang,
           },
         }
       );
@@ -34,34 +38,70 @@ const FindMyLocation = ({navigation, navigation: { goBack }}) => {
      
         } catch (error) {
       console.error('API Error:', error.message);
-      navigation.navigate('buyorsell')
-     // Alert.alert( 'Failed to get your location'); // Display an error message to the user
+      // navigation.navigate('buyorsell')
+      Dialog.show({
+        type: ALERT_TYPE.INFO,
+        title: 'Fetching Location',
+        textBody: 'Get Your Current location',
+        button: 'OK',
+      });
+      // Alert.alert( 'Failed to get your location'); // Display an error message to the user
     }
   };
+  
   useEffect(() => {
-    requestLocationPermission();
-    getCurrentLocation()
+    // getCurrentLocation()
+    handleEnabledPressed()
 },[])
- const requestLocationPermission = async () => {
-  try {
-    const granted = await PermissionsAndroid.request(
-      PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,{
-        title:'Location Permission',
-        message:'Location',
-        buttonPositive:'OK',
-        buttonNegative:"Cancel"
-      },
-    );
-    if(granted === PermissionsAndroid.RESULTS.GRANTED){
-      console.log('location access',granted);
-      getCurrentLocation()
-    }else{
-      console.log("denied");
+
+async function handleEnabledPressed() {
+  if (Platform.OS === 'android') {
+    try {
+      const enableResult = await promptForEnableLocationIfNeeded();
+      console.log('enableResult', enableResult);
+      requestLocationPermission();
+    } catch (error) {
+      if (error instanceof Error) {
+        console.error(error.message);
+       
+      }
     }
-  }catch(e){
-    console.warn(e);
   }
- }
+}
+
+const requestLocationPermission = async () => {
+  try {
+    const locationPermission = PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION;
+    const hasPermission = await PermissionsAndroid.check(locationPermission);
+    
+    if (hasPermission) {
+      console.log('Location permission already granted');
+      // Proceed to get the current location
+      getCurrentLocation();
+    } else {
+      console.log('Requesting location permission...');
+      const granted = await PermissionsAndroid.request(
+        locationPermission,
+        {
+          title: 'Location Permission',
+          message: 'This app requires access to your location.',
+          buttonPositive: 'OK',
+          buttonNegative: 'Cancel'
+        }
+      );
+
+      if (granted === PermissionsAndroid.RESULTS.GRANTED) {
+        console.log('Location permission granted');
+        
+        getCurrentLocation();
+      } else {
+        console.log('Location permission denied');
+      }
+    }
+  } catch (error) {
+    console.error('Error requesting location permission:', error);
+  }
+};
 
  const getCurrentLocation = ()=>{
   Geolocation.getCurrentPosition(
@@ -73,7 +113,8 @@ const FindMyLocation = ({navigation, navigation: { goBack }}) => {
       // See error code charts below.
       console.log("errrr",error.code, error);
     },
-    { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 }
+   
+    // { enableHighAccuracy: false, timeout: 5000,  }
 );
  }
 
@@ -93,7 +134,9 @@ const FindMyLocation = ({navigation, navigation: { goBack }}) => {
           source={require('../assets/images/add_location.png')} />
         </View>
       </View>
-      <Image style={{height:150,width:150,top:'20%'}} source={require('../assets/images/map.png')}/>
+      <Image style={{height:'40%',width:'60%',top:'5%',}} source={require('../assets/images/location.png')}/>
+
+      <AlertNotificationRoot/>
 
       
       <View style={{
@@ -140,7 +183,7 @@ const styles = StyleSheet.create({
   logintext: {
     fontSize: 16,
     fontWeight: '700',
-    left: 20,
+    left: 100,
     color: 'black'
   },
   choosetext: {

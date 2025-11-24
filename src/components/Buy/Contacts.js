@@ -2,13 +2,29 @@ import React, { useState,useEffect } from "react";
 import { View, ActivityIndicator, FlatList, StyleSheet, Image, Text, TouchableOpacity,Alert,Linking } from "react-native";
 import { ScrollView, TextInput } from "react-native-gesture-handler";
 import { PageIndicator } from 'react-native-page-indicator';
-import { ACCEPT_LANGUAGE, API_KEY, BASE_URL, IMG_URL, getAccessToken } from "../Api/apiConfig";
+import { ACCEPT_LANGUAGE, API_KEY, BASE_URL, IMG_URL, getAccessToken,getAcceptLanguage } from "../Api/apiConfig";
 import axios from "axios";
+import { BackHandler } from "react-native";
+import RNFS from 'react-native-fs';
+
 const Contacts = ({ navigation, navigation: { goBack } }) => {
 
     const [isWishlistSelected, setWishlistSelected] = useState(false);
     const [contactList, setContactList] = useState([]);
     const [loading, setLoading] = useState(true);
+
+    const [languageData, setLanguageData] = useState(null);
+    useEffect(() => {
+        const filePath = `${RNFS.DocumentDirectoryPath}/languageData.json`;
+    
+        RNFS.readFile(filePath, 'utf8')
+          .then((data) => {
+            setLanguageData(JSON.parse(data)); 
+          })
+          .catch((error) => {
+            console.error("Error reading file:", error);
+          });
+    }, []);
     const ViewDetails = (categories) => {
         // Handle language selection as needed
         console.log(`Selected language: ${categories}`);
@@ -22,9 +38,21 @@ const Contacts = ({ navigation, navigation: { goBack } }) => {
         getContactList()
         
     }, [])
+    React.useEffect(() => {
+        const backHandler = BackHandler.addEventListener(
+          "hardwareBackPress",
+          () => {
+            navigation.goBack(); 
+            return true; 
+          }
+        );
+      
+        return () => backHandler.remove();
+      }, [navigation]);
     const getContactList = async () => {
         try {
             const accessToken = await getAccessToken(); // Await the token retrieval
+            const lang = await getAcceptLanguage();
 
             const response = await axios.get(
                 `${BASE_URL}/user/enquiry`,
@@ -33,7 +61,7 @@ const Contacts = ({ navigation, navigation: { goBack } }) => {
                         'Content-Type': 'application/json',
                         'Authorization': `Bearer ${accessToken}`,
                         'x-api-key': API_KEY,
-                        'Accept-Language': ACCEPT_LANGUAGE,
+                        'Accept-Language': lang,
                     },
                 }
             );
@@ -80,9 +108,9 @@ const Contacts = ({ navigation, navigation: { goBack } }) => {
           source={{ uri: `${IMG_URL}${item.images[0]}` }}
         />
       )}
-            <View style={{ marginLeft: 5, flexDirection: 'row', width: '90%', justifyContent: 'space-between' }}>
-                <View>
-                    <Text style={styles.categoriesText}>
+              <View style={{ flexDirection: 'row', width: '100%',justifyContent:'space-evenly'}}>
+                <View style={{marginRight:'2%',width:'55%'}}>
+                    <Text style={styles.categoriesText} numberOfLines={2}>
                         {item.title}
                     </Text>
                     <Text style={{ fontSize: 12, fontWeight: '600', color: 'black', top: 5 }}>
@@ -112,7 +140,7 @@ const Contacts = ({ navigation, navigation: { goBack } }) => {
             </View>
             <View style={{ justifyContent: 'space-evenly', width: '100%', alignItems: 'flex-end', flex: 1, flexDirection: 'row', marginBottom: 15, top: 15 }}>
                 <TouchableOpacity style={{ borderWidth: 0.5, width: 50, borderColor: '#539F46', borderRadius: 10, padding: 2, alignItems: 'center' }} onPress={() => ViewDetails(item.title)}>
-                    <Text style={{ fontSize: 12 }}>
+                    <Text style={{ fontSize: 12 ,color:'black'}}>
                         View
                     </Text>
                 </TouchableOpacity>
@@ -139,7 +167,8 @@ const Contacts = ({ navigation, navigation: { goBack } }) => {
 
             <View style={{ flexDirection: 'row',justifyContent:'center', top: 10 }}>
                 <Text style={{ fontSize: 18, fontWeight: '700', top: '8%', color: '#539F46' }}>
-                    My Enquired List
+                {languageData?.my_enquired_list_screen?.title}
+
                 </Text>
                
 
@@ -148,8 +177,9 @@ const Contacts = ({ navigation, navigation: { goBack } }) => {
                 <ActivityIndicator size="large" color="#62A845" style={{ justifyContent: 'center', alignItems: 'center', flex: 1 }} />
             ) : contactList.length === 0 ? (
                 <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-                <Text style={{ textAlign: 'center', fontSize: 16, fontWeight: 'bold' }}>
-                  No Records Found
+                <Text style={{ textAlign: 'center', fontSize: 16, fontWeight: 'bold',color:'black' }}>
+                {languageData?.my_enquired_list_screen?.No_Enquired_List_Found}
+
                 </Text>
               </View>
             ) : (
@@ -174,10 +204,10 @@ const styles = StyleSheet.create({
     body: {
         backgroundColor: "white",
         flex: 1,
+        padding:'5%'
     },
     categoriesBox: {
         position: 'relative',
-        
         width: 150,
         backgroundColor: '#FFFFFF',
         borderColor: '#FFFFFF',

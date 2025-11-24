@@ -1,22 +1,26 @@
-import React, { useState, useEffect } from "react";
-import { View, Animated, Dimensions, StyleSheet, Image, Text, TouchableOpacity, Alert, FlatList, } from "react-native";
+import React, { useState, useEffect,useRef } from "react";
+import { View, Animated, Dimensions, StyleSheet, Image, Text, TouchableOpacity, Alert, FlatList,Linking } from "react-native";
 import { PageIndicator } from 'react-native-page-indicator';
 import axios from "axios";
-import { ACCEPT_LANGUAGE, API_KEY, BASE_URL, IMG_URL, getAccessToken } from "../Api/apiConfig";
+import { ACCEPT_LANGUAGE, API_KEY, BASE_URL, IMG_URL, getAccessToken,getAcceptLanguage } from "../Api/apiConfig";
 import { BackHandler } from 'react-native';
+import RNFS from 'react-native-fs';
+import { useLanguage } from "../Api/LanguageContext";
 
 const HomePageSell = ({ navigation, route }) => {
 
   const [userData, setUserData] = useState([]);
-  const [categoriesData,setCategoriesData] =useState([]);
+  const [categoriesData, setCategoriesData] = useState([]);
   const [bannerData, setBannerData] = useState([]);
+  const scrollX = useRef(new Animated.Value(0)).current;
+  const width = Dimensions.get('window').width;
 
-
+  const { languageData } = useLanguage();
   useEffect(() => {
-      fetchUserData();
-      // checkSubscriptionStatus();
-      categories()  
-      banner()
+    fetchUserData();
+    // checkSubscriptionStatus();
+    categories()
+    banner()
 
   }, []);
 
@@ -25,33 +29,19 @@ const HomePageSell = ({ navigation, route }) => {
       BackHandler.exitApp();
       return true;
     };
-  
+
     const backHandler = BackHandler.addEventListener(
       "hardwareBackPress",
       backAction
     );
-  
+
     return () => backHandler.remove();
   }, []);
-  
-  
-  // useEffect(() => {
-  //   const handleScroll = (event) => {
-  //     const { contentOffset, layoutMeasurement } = event.nativeEvent;
-  //     const currentIndex = Math.floor(contentOffset.x / layoutMeasurement.width);
-  //     setAnimatedCurrent(currentIndex);
-  //   };
-  
-  //   scrollX.addListener(handleScroll);
-  
-  //   return () => {
-  //     scrollX.removeListener(handleScroll);
-  //   };
-  // }, [scrollX]);
 
   const banner = async () => {
     try {
-      const accessToken = await getAccessToken(); 
+      const accessToken = await getAccessToken();
+      const lang = await getAcceptLanguage();
 
       const response = await axios.get(
         `${BASE_URL}/banner`,
@@ -60,12 +50,12 @@ const HomePageSell = ({ navigation, route }) => {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${accessToken}`,
             'x-api-key': API_KEY,
-            'Accept-Language': ACCEPT_LANGUAGE,
+            'Accept-Language': lang,
           },
         }
       );
       setBannerData(response.data.data)
-     console.log("baner",response.data);
+      console.log("baner", response.data);
     } catch (error) {
       console.error('Error fetching subscription data:', error);
     }
@@ -73,27 +63,28 @@ const HomePageSell = ({ navigation, route }) => {
 
   const categories = async () => {
     try {
-      const accessToken = await getAccessToken(); 
-  
+      const accessToken = await getAccessToken();
+      const lang = await getAcceptLanguage();
+
       const response = await axios.post(
         `${BASE_URL}/category`,
         {
-          "keyword" : "",
-          "skip" : 0,
-          "limit" : 10
-      },
+          "keyword": "",
+          "skip": 0,
+          "limit": 10
+        },
         {
           headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${accessToken}`,
             'x-api-key': API_KEY,
-            'Accept-Language': ACCEPT_LANGUAGE,
+            'Accept-Language': lang,
           },
         }
       );
-      console.log("cat",response.data.data.list);
-     setCategoriesData(response.data.data.list)
-     
+      console.log("cat", response.data.data.list);
+      setCategoriesData(response.data.data.list)
+
     } catch (error) {
       console.error('Error fetching subscription data:', error);
     }
@@ -101,8 +92,9 @@ const HomePageSell = ({ navigation, route }) => {
 
   const fetchUserData = async () => {
     try {
-      const accessToken = await getAccessToken(); 
-  
+      const accessToken = await getAccessToken();
+      const lang = await getAcceptLanguage();
+
       const response = await axios.get(
         `${BASE_URL}/user`,
         {
@@ -110,63 +102,85 @@ const HomePageSell = ({ navigation, route }) => {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${accessToken}`,
             'x-api-key': API_KEY,
-            'Accept-Language': ACCEPT_LANGUAGE,
+            'Accept-Language': lang,
           },
         }
       );
       setUserData(response.data.data)
-      if (!response.data.data.isSubscribed && !response.data.data.isTrailPeriod) {
+    //  if (!response.data.data.isSubscribed && !response.data.data.isTrailPeriod) {
 
         Alert.alert(
-          "Subscription Alert",
-          "Your subscription has expired. Please renew your subscription.",
+          " Alert",
+          "Cattle are for agriculture, Rearing and dairy farming only ",
           [
             {
               text: "OK",
               onPress: () => {
-               
+
               },
             },
           ],
           { cancelable: false }
         );
-      }
-      
-         } catch (error) {
+    //  }
+
+    } catch (error) {
       console.error('Error fetching user data:', error.response.data);
+    }
+  };
+  const handleBannerPress = (url) => {
+    if (url) {
+      // Check if the URL has a protocol, if not, add 'http://'
+      if (!url.startsWith('http://') && !url.startsWith('https://')) {
+        url = 'http://' + url;
+      }
+      Linking.openURL(url).catch((error) => console.error('Failed to open URL:', error));
     }
   };
   const localImagePath = require('../../assets/images/example.jpg');
   // const imagePaths = bannerData.map(item => item.image);
 
   const imagePaths = Array(4).fill(localImagePath);
-   const scrollX = new Animated.Value(0);
-  const width = Dimensions.get('window').width;
-   const animatedCurrent = Animated.divide(scrollX, width);
+  // const scrollX = new Animated.Value(0);
+  // const width = Dimensions.get('window').width;
+  // const animatedCurrent = Animated.divide(scrollX, width);
+  // const interval = 3000;
   const [currentPage, setCurrentPage] = useState(0);
   // const [scrollX, setScrollX] = useState(new Animated.Value(0));
   // const [animatedCurrent, setAnimatedCurrent] = useState(0);
 
 
+  // const startAutoScroll = () => {
+  //   setInterval(() => {
+  //     Animated.timing(scrollX, {
+  //       toValue: scrollX._value + width,
+  //       duration: 500, // Adjust animation speed as needed
+  //       useNativeDriver: true,
+  //     }).start();
+  //   }, 3000); // Auto-scroll interval
+  // };
+  // useEffect(() => {
+  //   startAutoScroll();
+  // }, []);
 
   const menu = () => {
     navigation.toggleDrawer();
   }
   const handleCategoryPress = (item) => {
-    console.log("main_id",item._id);
-    navigation.navigate('sellcategories',{id:item._id});
- //   subCategories(item)
+    console.log("main_id", item._id);
+    navigation.navigate('sellcategories', { id: item._id });
+    //   subCategories(item)
   }
-//   const handleScroll = (event) => {
-//   const { nativeEvent } = event;
-//   if (nativeEvent) {
-//     const { contentOffset, layoutMeasurement } = nativeEvent;
-//     const currentIndex = Math.floor(contentOffset.x / layoutMeasurement.width);
-//     setAnimatedCurrent(currentIndex);
-//   }
-// };
+  //   const handleScroll = (event) => {
+  //   const { nativeEvent } = event;
+  //   if (nativeEvent) {
+  //     const { contentOffset, layoutMeasurement } = nativeEvent;
+  //     const currentIndex = Math.floor(contentOffset.x / layoutMeasurement.width);
+  //     setAnimatedCurrent(currentIndex);
+  //   }
+  // };
 
- 
+
   const Buyscreen = () => {
     navigation.navigate('buynavigationdrawer');
   }
@@ -179,110 +193,126 @@ const HomePageSell = ({ navigation, route }) => {
   };
   return (
     <View style={styles.body}>
-      <View style={styles.rectangle}>
-        <TouchableOpacity onPress={() => menu()}>
-          <Image style={styles.menu}
-            source={require('../../assets/images/menu.png')} />
-        </TouchableOpacity>
-        <Image style={styles.back}
-          source={require('../../assets/images/logohome.png')} />
-        <View style={{  alignItems: "center", flexDirection: "row", width: "100%", }}>
-          <View style={{ flexDirection: 'column' }}>
-            <Text style={styles.logintext}>
-              Janapada
-            </Text>
-            <Text style={{ fontSize: 10, fontWeight: 400, left: 10 }}>
-              The farmers marketplace
-            </Text>
-          </View>
-          <View style={{flexDirection:'row',left:'25%'}}>
-          <TouchableOpacity onPress={() => Buyscreen()}>
-            <Image style={styles.buy}
-              source={require('../../assets/images/buy.png')} />
-          </TouchableOpacity>
-
-          <TouchableOpacity onPress={() => navigation.navigate('buynotification')}>
-          <Image style={styles.image}
-            source={require('../../assets/images/notificationicon.png')} />
-          </TouchableOpacity>
-          </View>
-          
-        </View>
-      </View>
-      <View style={{ width: '90%', top: '5%', left: 20 }}>
+     <View style={styles.rectangle}>
+  <TouchableOpacity onPress={() => menu()}>
+    <Image style={styles.menu}
+      source={require('../../assets/images/menu.png')} />
+  </TouchableOpacity>
+  
+  <View style={{ alignItems: "center", flexDirection: "row", width: "80%", justifyContent: 'space-between',}}>
+  <View style={{ flexDirection: 'column' ,left:'90%',padding:10}}>
+  <Image style={styles.back}
+    source={require('../../assets/images/logohome.png')} />
+      <Text style={{ fontSize: 8, fontWeight: 600,color:'black' }}>
+      The Rural E-Market Place
+      </Text>
+  </View>
+ 
+    {/* <View style={{ flexDirection: 'column' ,}}>
+      <Text style={styles.logintext}>
+      Village Link
+      </Text>
+      <Text style={{ fontSize: 10, fontWeight: 400,color:'black' }}>
+      The Rural E-Market Place
+      </Text>
+    </View> */}
+    <View style={{ flexDirection: 'row', alignItems: 'center',}}>
+    <TouchableOpacity onPress={() => Buyscreen()} >
+        <Image style={styles.buy}
+          source={require('../../assets/images/buy.png')} />
+      </TouchableOpacity>
+    {/* <TouchableOpacity onPress={() => navigation.navigate('buynotification')}>
+        <Image style={styles.image}
+          source={require('../../assets/images/notificationicon.png')} />
+      </TouchableOpacity> */}
+     
+      
+    </View>
+  </View>
+</View>
+      {/* <View style={{ width: '90%', top: '5%', left: 20 }}>
         <TouchableOpacity
           style={styles.searchButton}
-          // onPress={() => 
-          // navigation.navigate('commonfilter')}
+          onPress={() => 
+          navigation.navigate('commonfilter',{type:'sell'})}
           >
           <Image style={styles.searchicon}
             source={require('../../assets/images/searchhome.png')} />
           <Text style={{ fontSize: 14, right: 70, top: 8, fontWeight: '400', color: 'black' }} >
             Search by location</Text>
         </TouchableOpacity>
-      </View>
-      <View style={{ height: '30%', top: 50 }}>
+      </View> */}
+     <View style={{ height: '30%', top: 50 }}>
         <Animated.ScrollView
           horizontal
           pagingEnabled
           showsHorizontalScrollIndicator={false}
           onScroll={Animated.event(
             [{ nativeEvent: { contentOffset: { x: scrollX } } }],
-            { useNativeDriver: true ,}
+            { useNativeDriver: true }
           )}
-
+          scrollEventThrottle={16}
         >
-      {bannerData?.map((item, index) => (
-    <View key={index} style={{ width, paddingRight: 20, paddingLeft: 20 }}>
-      <Image source={{ uri: `${IMG_URL}${item.image}` }} style={styles.banner} />
-    </View>
-  ))}
+          {bannerData?.map((item, index) => (
+            <TouchableOpacity key={index} onPress={() => handleBannerPress(item.url)}>
+            <View style={{ width, paddingRight: 20, paddingLeft: 20 }}>
+            <Image source={{ uri: `${IMG_URL}${item.image}` }} style={styles.banner} />
+              </View>
+        </TouchableOpacity>
+          ))}
         </Animated.ScrollView>
-        <View style={styles.pageIndicatorContainer}>
-    <PageIndicator
-      style={styles.pageIndicator}
-      count={bannerData.length}
-      current={animatedCurrent}
-    />
-  </View>
-
+        <View style={{bottom:'20%'}}>
+          <PageIndicator
+            style={styles.pageIndicator}
+            count={bannerData.length}
+            current={Animated.divide(scrollX, width)}
+          />
+        </View>
       </View>
-      <Text style={{ fontSize: 18, fontWeight: '700', left: 20, top: '8%', color: '#303733' }}>
-        Categories
+      <Text style={{ fontSize: 18, fontWeight: '700', left: 20, top: '2%', color: '#303733' }}>
+      {languageData?.buy_screen?.categories_text}
       </Text>
-      <View style={{flex: 1,justifyContent:'center',alignItems:'center',top:'3%'}}>
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center',marginBottom:'8%' }}>
       <FlatList
-        style={{ top: '10%', }}
-        data={categoriesData}
-        keyExtractor={(item) => item._id}
-        numColumns={2} // Adjust the number of columns as needed
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            style={{
-              height: 125,
-              width: 150,
-              backgroundColor: '#FFFFFF',
-              borderRadius: 10,
-              elevation: 5,
-              justifyContent: 'center',
-              alignItems: 'center',
-              marginBottom: 20,
-              top:10,
-              marginHorizontal:10
+      style={{ top: '5%' }}
+      data={categoriesData}
+      keyExtractor={(item) => item._id}
+      numColumns={2} // Adjust the number of columns as needed
+      showsVerticalScrollIndicator={false}
+      renderItem={({ item }) => {
+        const isProductCountZero = item.status === false; // Check if product count is 0
+        return (
+          <View style={{ marginBottom: 20, marginHorizontal: 10 }}>
+            <TouchableOpacity
+              style={{
+                height: 125,
+                width: 150,
+                backgroundColor: '#FFFFFF',
+                borderRadius: 10,
+                elevation: 5,
+                justifyContent: 'center',
+                alignItems: 'center',
+                top: 10,
+                overflow: 'hidden', // Ensure the overlay doesn't go outside the container
               }}
-            onPress={() => handleCategoryPress(item)}
-          >
-            <Image
-              style={styles.livestocks}
-              source={{ uri: `${IMG_URL}${item.image}` }}
-             // source={require('../../assets/images/livestock.png')}
-            />
-            <Text style={styles.categoriesText}>{item.title}</Text>
-          </TouchableOpacity>
-        )}
-      />
+              onPress={() =>  handleCategoryPress(item)} // Disable click if product count is 0
+              activeOpacity={isProductCountZero ? 1 : 0.7} // Make the touchable not respond to presses if product count is 0
+            >
+              <Image
+                style={styles.livestocks}
+                source={{ uri: `${IMG_URL}${item.image}` }}
+              />
+              <Text style={styles.categoriesText} numberOfLines={2}>{item.title}</Text>
+              {isProductCountZero && (
+                <View style={styles.overlay} />
+              )}
+            </TouchableOpacity>
+          </View>
+        );
+      }}
+    />
       </View>
-      
+
     </View>
   )
 }
@@ -290,7 +320,7 @@ const styles = StyleSheet.create({
   body: {
     backgroundColor: "white",
     flex: 1,
-
+   padding:'5%'
 
   },
   rectangle: {
@@ -300,22 +330,32 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     top: 10,
-    left: 10,
+    marginHorizontal: '5%',
   },
   menu: {
     height: 24,
     width: 24,
   },
-  livestocks:{
-    height:70,
-    width:120
+  livestocks: {
+    height: 70,
+    width: 120
   },
   categoriesText: {
-    fontSize: 12,
-    top:5,
+    fontSize: 14,
+    top: 5,
     fontWeight: '500',
-    color: 'black'
+    color: 'black',
+    textAlign: 'center', // Center the text
+    flexWrap: 'wrap',
 
+  },
+  overlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    bottom: 0,
+    right: 0,
+    backgroundColor:'rgba(140, 149, 159, 0.2)', // Semi-transparent gray overlay
   },
   buy: {
     height: 30,
@@ -323,8 +363,8 @@ const styles = StyleSheet.create({
 
   },
   banner: {
-    height: 200,
-    width: '100%',
+    height: '85%',
+    width: '90%',
     borderRadius: 20
   },
   searchButton: {
@@ -339,20 +379,20 @@ const styles = StyleSheet.create({
   },
 
   back: {
-    height: 40,
-    width: 40,
-    left: 7
+    height: 30,
+    width: 90,
+    
   },
   logintext: {
     fontSize: 16,
     fontWeight: '400',
-    left: 10,
+   
     color: '#539F46'
   },
   image: {
     width: 30,
     height: 30,
-    left:5
+    left: 5
   },
   searchicon: {
     width: 30,
@@ -363,14 +403,8 @@ const styles = StyleSheet.create({
 
 
   },
-  pageIndicatorContainer: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    alignItems: 'center',
-  },
   
+
 
 })
 export default HomePageSell;

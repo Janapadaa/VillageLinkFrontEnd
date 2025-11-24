@@ -1,10 +1,13 @@
 import React, { useState ,useEffect } from "react";
-import { View, FlatList, StyleSheet, Image, Text, TouchableOpacity } from "react-native";
+import { View, FlatList, StyleSheet, Image, Text, TouchableOpacity, BackHandler } from "react-native";
 import { SearchBar } from 'react-native-elements';
 import { ScrollView, TextInput } from "react-native-gesture-handler";
 import { PageIndicator } from 'react-native-page-indicator';
 import axios from "axios";
-import { ACCEPT_LANGUAGE, API_KEY, BASE_URL, IMG_URL, getAccessToken } from "../Api/apiConfig";
+import { ACCEPT_LANGUAGE, API_KEY, BASE_URL, IMG_URL, getAccessToken,getAcceptLanguage } from "../Api/apiConfig";
+import { ALERT_TYPE, Dialog, AlertNotificationRoot,  } from "react-native-alert-notification";
+import Toast from 'react-native-toast-message'; // Add this line
+import RNFS from 'react-native-fs';
 
 const BuySubCategories = ({ navigation, navigation: { goBack },route }) => {
   const parentId = route?.params?.id
@@ -15,20 +18,48 @@ const BuySubCategories = ({ navigation, navigation: { goBack },route }) => {
   const isNextButtonDisabled = !selectedCategories;
   const [title, setTitle] = useState(null)
   const [id, setId] = useState(null)
+  const [page, setPage] = useState(1); // Initialize page number
+  const [hasMoreData, setHasMoreData] = useState(true);
+
+  const [languageData, setLanguageData] = useState(null);
+  useEffect(() => {
+      const filePath = `${RNFS.DocumentDirectoryPath}/languageData.json`;
+  
+      RNFS.readFile(filePath, 'utf8')
+        .then((data) => {
+          setLanguageData(JSON.parse(data)); 
+        })
+        .catch((error) => {
+          console.error("Error reading file:", error);
+        });
+  }, []);
 
   useEffect(() => {
     subCategories()
 }, [])
+useEffect(() => {
+  const backHandler = BackHandler.addEventListener(
+    "hardwareBackPress",
+    () => {
+      navigation.goBack(); 
+      return true; 
+    }
+  );
 
+  return () => backHandler.remove();
+}, [navigation]);
 const subCategories = async () => {
   try {
     const accessToken = await getAccessToken(); 
+    const lang = await getAcceptLanguage();
+
+    const skip = subcategories.length;
       const response = await axios.post(
         `${BASE_URL}/category`,
         {
               "keyword": "",
               "parentId": parentId,
-              "skip": 0,
+              "skip": skip,
               "limit": 10
           },
           {
@@ -36,12 +67,19 @@ const subCategories = async () => {
                   'Content-Type': 'application/json',
                   'Authorization': `Bearer ${accessToken}`,
                   'x-api-key': API_KEY,
-                  'Accept-Language': ACCEPT_LANGUAGE,
+                  'Accept-Language': lang,
               },
           }
       );
       console.log(" Sub cats", response.data.data.list);
-      setSubcategories(response.data.data.list);
+      if (response.data.data.list.length === 0) {
+        setHasMoreData(false);
+      }
+
+      // Merge the newly fetched data with the existing data
+      setSubcategories(prevSubcategories => [...prevSubcategories, ...response.data.data.list]);
+  
+      // setSubcategories(response.data.data.list);
     
   } catch (error) {
       console.error('Error fetching subscription data:', error.message);
@@ -55,8 +93,26 @@ const handleSelectCategories = (id,tit) => {
       prevSelectedCategories === id ? null : id
   );  
 };
-const handleSubmit = () => {
+const handleEndReached = () => {
+  if (hasMoreData) {
+    setPage(page + 1); // Increment the page number
+    subCategories(); // Fetch more data
+  }
+};
+
+const handleSubmit = (item) => {
   // const title = subcategories[0].title;
+  if (!item || !item.length) {
+    Toast.show({
+      type: 'error',
+      text1: 'Select one',
+      text2: 'Please Select To Continue',
+      position:'top',
+      topOffset:23,
+      text1Style:{fontSize:16,fontWeight:'400'}
+    });
+    return; 
+  }
 console.log(title);
     navigation.navigate('buylist', {
       title: title,
@@ -83,21 +139,18 @@ console.log(title);
       </TouchableOpacity> */}
             
             </View>
+            <Toast/>
               
-          {mainid === '65fc731c2e0b4ae365115908' ?  <View style={{ flexDirection: 'row', justifyContent: 'center' }}>
+          {mainid === '6667fc6ba90178b6862b10d1' ?  <View style={{ flexDirection: 'row', justifyContent: 'center' }}>
                 <Text style={{ fontSize: 14, fontWeight: '500', top: '8%', color: '#539F46' }}>
-                Choose 
+                {languageData?.buffalo_screen?.title} 
                 </Text>
-                <Text style={{ fontSize: 14, fontWeight: '500', top: '8%', color: 'black', left: 5 }}>
-                Breed
-                </Text>
+               
             </View> :  <View style={{ flexDirection: 'row', justifyContent: 'center' }}>
                 <Text style={{ fontSize: 14, fontWeight: '500', top: '8%', color: '#539F46' }}>
-                Choose 
+                {languageData?.agricultural_tools_implements_screen?.title}  
                 </Text>
-                <Text style={{ fontSize: 14, fontWeight: '500', top: '8%', color: 'black', left: 5 }}>
-                Brand
-                </Text>
+               
             </View>}
            
             <View style={{flex: 1,justifyContent:'center',alignItems:'center',top:'3%',marginBottom:'10%'}}>
@@ -124,6 +177,8 @@ console.log(title);
             <Text style={styles.categoriesText}>{item.title}</Text>
           </TouchableOpacity>
         )}
+        onEndReached={handleEndReached} 
+      onEndReachedThreshold={0.5}
       />
             </View>
            
@@ -132,13 +187,14 @@ console.log(title);
         width: '100%',
         justifyContent: 'flex-end',
       }}>
+        <AlertNotificationRoot/>
 
         <TouchableOpacity
           style={styles.button}
-          onPress={() => { handleSubmit() }}
-          disabled={isNextButtonDisabled}>
+          onPress={() => { handleSubmit(selectedCategories) }}
+         >
           <Text style={{ fontSize: 18, color: 'white', fontWeight: '600' }}>
-            Next
+          {languageData?.agricultural_tools_implements_screen?.next_button_text}
           </Text>
 
         </TouchableOpacity>
@@ -150,6 +206,8 @@ const styles = StyleSheet.create({
   body: {
     backgroundColor: "white",
     flex: 1,
+    paddingVertical:'5%'
+
   },
   categoriesBox: {
     height: 125,

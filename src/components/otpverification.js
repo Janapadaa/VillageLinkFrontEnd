@@ -1,11 +1,14 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState,useEffect } from 'react';
 import { View, ScrollView, StyleSheet, Image, Text, Alert,TouchableOpacity, TextInput, KeyboardAvoidingView } from "react-native";
 // import WebView from 'react-native-webview';
 import OTPTextView from 'react-native-otp-textinput';
 import axios from 'axios';
-import { BASE_URL, API_KEY, ACCEPT_LANGUAGE, setAccessToken,getAccessToken } from "./Api/apiConfig";
+import { BASE_URL, API_KEY, ACCEPT_LANGUAGE, setAccessToken,getAccessToken, getDeviceToken,getAcceptLanguage } from "./Api/apiConfig";
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { ALERT_TYPE, Dialog, AlertNotificationRoot, Toast } from "react-native-alert-notification";
+import RNFS from 'react-native-fs';
 
+import { useLanguage } from './Api/LanguageContext';
 
 const OtpVerification = ({navigation, navigation: { goBack },route}) => {
   // const [otpInput, setOtpInput] = useState("");
@@ -14,7 +17,10 @@ const OtpVerification = ({navigation, navigation: { goBack },route}) => {
 
   const { phoneNumber, verificationCode } = route.params;
   const [otpInput, setOtpInput] = useState(verificationCode || "");
+  
 
+       const { languageData } = useLanguage();
+  
   const handleSubmit = async () => {
     if (!otpInput) {
       Alert.alert('Error', 'Please enter the verification code');
@@ -22,12 +28,16 @@ const OtpVerification = ({navigation, navigation: { goBack },route}) => {
     }
   
     try {
+      const deviceToken = await getDeviceToken(); 
+      const lang = await getAcceptLanguage();
+
+console.log("devicetoken",deviceToken);
       console.log('Request Payload:', {
         shortCode: "+91",
         phoneNumber: phoneNumber,
         verificationCode: otpInput,
-        deviceToken: "TEST",
-        language: "ta",
+        deviceToken: deviceToken,
+        language: ACCEPT_LANGUAGE,
       });
       const response = await axios.post(
         `${BASE_URL}/auth/verify-otp`,
@@ -35,14 +45,14 @@ const OtpVerification = ({navigation, navigation: { goBack },route}) => {
           shortCode: "+91",
           phoneNumber: phoneNumber,
           verificationCode: otpInput,
-          deviceToken: "TEST",
-          language: "en",
+          deviceToken: deviceToken,
+          language: ACCEPT_LANGUAGE,
         },
         {
           headers: {
             'Content-Type': 'application/json',
             'x-api-key': API_KEY,
-            'Accept-Language': ACCEPT_LANGUAGE,
+            'Accept-Language': lang,
           },
         }
       );
@@ -59,11 +69,23 @@ const OtpVerification = ({navigation, navigation: { goBack },route}) => {
           navigation.navigate('createprofile',{type:"create"});
         }
       } else {
-        Alert.alert('Error', 'Invalid verification code. Please try again.');
+        Dialog.show({
+          type: ALERT_TYPE.DANGER,
+          title: 'Error',
+          textBody: 'Invalid verification code. Please try again.',
+          button: 'OK',
+        });
+       
       }
     } catch (error) {
       console.error('API Error:', error.response.data);
-      Alert.alert('Error', 'Failed to verify OTP. Please try again.'); // Display an error message to the user
+      Dialog.show({
+        type: ALERT_TYPE.DANGER,
+        title: 'Error',
+        textBody: 'Failed to verify OTP. Please try again.',
+        button: 'OK',
+      });
+     // Alert.alert('Error', 'Failed to verify OTP. Please try again.'); // Display an error message to the user
     }
   };
   
@@ -85,19 +107,19 @@ const OtpVerification = ({navigation, navigation: { goBack },route}) => {
           source={require('../assets/images/back.png')} />
       </TouchableOpacity>
       
-        <View style={{justifyContent: 'space-between',alignItems: "center",flexDirection: "row",width: "100%",}}>
+        <View style={{justifyContent: 'center',alignItems: "center",flexDirection: "row",width:'100%'}}>
         <Text style={styles.logintext}>
-          Verify Account
+        {languageData?.verify_account_screen?.title}
         </Text>
-        <Image style={styles.image}
-          source={require('../assets/images/verifyotp.png')} />
+        {/* <Image style={styles.image}
+          source={require('../assets/images/verifyotp.png')} /> */}
         </View>
       </View>
 
       <Image style={styles.otp}
-        source={require('../assets/images/otpverify.png')} />
+        source={require('../assets/images/otpverify1.png')} />
       <Text style={{fontSize: 16,color: 'black',fontWeight: '700',}}>
-        Enter The Verification Code Sent To Your Number
+      {languageData?.verify_account_screen?.content_1}
       </Text>
 
       <View style={{flexDirection:'row',width:'50%',justifyContent:'space-between',top:20}}> 
@@ -106,7 +128,7 @@ const OtpVerification = ({navigation, navigation: { goBack },route}) => {
       </Text>
 
       <Text style={{fontSize:12,color:'black'}}>
-        {'00:' + counter}
+        {'00:0' + counter}
       </Text>
       </View>
       
@@ -116,16 +138,20 @@ const OtpVerification = ({navigation, navigation: { goBack },route}) => {
           containerStyle={styles.textInputContainer}
           textInputStyle={styles.roundedTextInput}
           inputCount={4}
-          defaultValue={verificationCode}
+          //defaultValue={verificationCode}
+          
         />
       </View>
+      <AlertNotificationRoot/>
       <View style={{top :'8%', flexDirection: 'row' }}>
         <Text style={{  color: '#000000' }}>
-          Didn’t Receive the code?
+        {languageData?.verify_account_screen?.resend_text}
         </Text>
 
         {resendButtonEnabled && (
-    <TouchableOpacity onPress={() => { handleSubmit() }}>
+    <TouchableOpacity
+    //  onPress={() => { handleSubmit() }}
+     >
       <Text style={{ left: 3, color: '#509E46' }}>
         Resend
       </Text>
@@ -146,7 +172,7 @@ const OtpVerification = ({navigation, navigation: { goBack },route}) => {
           style={styles.button}
           onPress={() => { handleSubmit() }}>
           <Text style={{ fontSize: 18, color: 'white', fontWeight: '600' }}>
-            Verify
+          {languageData?.verify_account_screen?.verify_button_text}
           </Text>
 
         </TouchableOpacity>
@@ -160,6 +186,8 @@ const styles = StyleSheet.create({
     backgroundColor: "white",
     flexGrow: 1,
     alignItems: "center",
+    paddingVertical:'5%'
+
 
   },
   rectangle: {
@@ -175,13 +203,13 @@ const styles = StyleSheet.create({
   },
   otp:{
     width:190,
-    height:190,
-    bottom:20
+    height:210,
+    marginBottom:20,
+    marginTop:5
   },
   logintext: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '700',
-    left: 20,
     color: 'black'
   },
   numberinput: {

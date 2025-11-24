@@ -1,5 +1,5 @@
-import React, { useState ,useEffect} from 'react';
-import { View, ScrollView, StyleSheet, Image, Text, TouchableOpacity, ActivityIndicator,FlatList, } from "react-native";
+import React, { useState, useEffect } from 'react';
+import { View, ScrollView, StyleSheet, Image, Text, TouchableOpacity, ActivityIndicator, FlatList, } from "react-native";
 import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
 import Dropdown from 'react-native-element-dropdown';
 import Modal from 'react-native-modal';
@@ -9,183 +9,314 @@ import CheckBox from 'react-native-check-box'
 import Video from 'react-native-video';
 import Geolocation from '@react-native-community/geolocation';
 import axios from 'axios';
-import { ACCEPT_LANGUAGE, API_KEY, BASE_URL, getAccessToken } from '../Api/apiConfig';
+import { ACCEPT_LANGUAGE, API_KEY, BASE_URL, getAccessToken,getAcceptLanguage } from '../Api/apiConfig';
 import { GooglePlacesAutocomplete } from 'react-native-google-places-autocomplete';
+import { BackHandler } from 'react-native';
+import { PermissionsAndroid, Platform } from 'react-native';
+import { promptForEnableLocationIfNeeded } from 'react-native-android-location-enabler';
+import RNFS from 'react-native-fs';
 
 // import WebView from 'react-native-webview';
 
-const UploadImages = ({ navigation, navigation: { goBack },route }) => {
+const UploadImages = ({ navigation, navigation: { goBack }, route }) => {
     const [images, setImages] = useState([]);
     const [videoUri, setVideoUri] = useState(null);
     const [isModalVisible, setModalVisible] = useState(false);
     const [isChecked, setIsChecked] = useState(false);
     const [position, setPosition] = useState(null);
     const [isLoading, setIsLoading] = useState(false);
-
+    const [languageData, setLanguageData] = useState(null);
+    useEffect(() => {
+        const filePath = `${RNFS.DocumentDirectoryPath}/languageData.json`;
+    console.log(filePath);
+    
+        RNFS.readFile(filePath, 'utf8')
+          .then((data) => {
+            setLanguageData(JSON.parse(data)); 
+          })
+          .catch((error) => {
+            console.error("Error reading file:", error);
+          });
+    }, []);
     const parent = route?.params?.parent;
-    const type = route?.params?.type || [];
-    const catIds =route?.params?.details;
-    const mainid=route?.params?.mainid
-    const id =route?.params?.id;
-    console.log('mainid',mainid);
+    const type = route?.params?.type || []; 
+    const catIds = route?.params?.details;
+    const mainid = route?.params?.mainid
+    const id = route?.params?.id;
+    console.log('mainid', mainid);
     let livestockAttributes = [];
     let farmEquipmentsAttributes = [];
-    let priceValue ='' ;
-    let descriptionValue ='';
-    let lat='';
-    let lng='';
-    let typevalue= '';
-    let renttype='';
-    let place='';
+    let priceValue = '';
+    let descriptionValue = '';
+    let lat = '';
+    let lng = '';
+    let typevalue = '';
+    let renttype = '';
+    let place = '';
 
-    if(mainid === '65fc731c2e0b4ae365115908'){
-        console.log('recieved_liv',route.params.livestockAttributes);
-         livestockAttributes = route?.params?.livestockAttributes || [];
+    if (mainid === '6667fc6ba90178b6862b10d1') {
+        console.log('recieved_liv', route.params.livestockAttributes);
+        livestockAttributes = route?.params?.livestockAttributes || [];
 
-         const placeObj = livestockAttributes.find(item => item.key === 'place');
-         place = placeObj ? placeObj.value : '';
+        const placeObj = livestockAttributes.find(item => item.key === 'place');
+        place = placeObj ? placeObj.value : '';
 
         const priceObject = livestockAttributes.find(item => item.key === 'price');
         priceValue = priceObject ? priceObject.value : null;
-   
+
         const descriptionObject = livestockAttributes.find(item => item.key === 'description');
         descriptionValue = descriptionObject ? descriptionObject?.value : null;
-        console.log("descrip",descriptionValue);
+        console.log("descrip", descriptionValue);
 
         const typeObject = livestockAttributes.find(item => item.key === 'type');
-         typevalue = 'sell'
-        
+        typevalue = 'sell'
+
 
         const latobj = livestockAttributes.find(item => item.key === 'location');
-         lat = latobj ?  (latobj?.value?.lat || "") : null;
+        lat = latobj ? (latobj?.value?.lat || "") : null;
 
         const lngobj = livestockAttributes.find(item => item.key === 'location');
-         lng = lngobj ? (latobj?.value?.lng || "") : null;
+        lng = lngobj ? (lngobj?.value?.lng || "") : null;
 
-         renttype='';
+        renttype = '';
 
-        console.log('lat',lat,'lng',lng);
+        console.log('lat', lat);
 
 
 
-   } else{
-    console.log('recieved_farm',route.params.farmEquipmentAttributesAttributes);
-         farmEquipmentsAttributes = route?.params?.farmEquipmentAttributesAttributes || [];
+    } else {
+        console.log('recieved_farm', route.params.farmEquipmentAttributesAttributes);
+        farmEquipmentsAttributes = route?.params?.farmEquipmentAttributesAttributes || [];
 
-         const placeObj = farmEquipmentsAttributes.find(item => item.key === 'place');
-         place = placeObj ? placeObj.value : '';
+        const placeObj = farmEquipmentsAttributes.find(item => item.key === 'place');
+        place = placeObj ? placeObj.value : '';
 
         const priceObject = farmEquipmentsAttributes.find(item => item.key === 'price');
         priceValue = priceObject ? priceObject.value : '';
-   
+
         const descriptionObject = farmEquipmentsAttributes.find(item => item.key === 'description');
         descriptionValue = descriptionObject ? descriptionObject?.value : null;
-        console.log("descrip",descriptionValue);
+        console.log("descrip", descriptionValue);
 
         const typeObject = farmEquipmentsAttributes.find(item => item.key === 'type');
-         typevalue = typeObject ? typeObject.value : null;
-       
+        typevalue = typeObject ? typeObject.value : null;
+
         const latobj = farmEquipmentsAttributes.find(item => item.key === 'location');
         lat = latobj ? (latobj?.value?.lat || "") : null;
 
         const lngobj = farmEquipmentsAttributes.find(item => item.key === 'location');
-        lng = lngobj ? (lngobj?.value?.lat || ""): null;
+        lng = lngobj ? (lngobj?.value?.lng || "") : null;
 
         const rentobj = farmEquipmentsAttributes.find(item => item.key === 'renttype');
         renttype = rentobj && rentobj.value !== null ? rentobj.value : "";
-       
+
 
 
 
     }
-  
-     
+
+
 
     const handleCheckBoxClick = () => {
         setIsChecked(!isChecked);
-        
-    };
 
+    };
     useEffect(() => {
-       console.log(route.params.livestockAttributes);
-         getCurrentLocation()
+        // getCurrentLocation()
+        handleEnabledPressed()
     },[])
+    
+    async function handleEnabledPressed() {
+      if (Platform.OS === 'android') {
+        try {
+          const enableResult = await promptForEnableLocationIfNeeded();
+          console.log('enableResult', enableResult);
+          requestLocationPermission();
+    
+          // The user has accepted to enable the location services
+          // data can be :
+          //  - "already-enabled" if the location services has been already enabled
+          //  - "enabled" if user has clicked on OK button in the popup
+        } catch (error) {
+          if (error instanceof Error) {
+            console.error(error.message);
+            // The user has not accepted to enable the location services or something went wrong during the process
+            // "err" : { "code" : "ERR00|ERR01|ERR02|ERR03", "message" : "message"}
+            // codes :
+            //  - ERR00 : The user has clicked on Cancel button in the popup
+            //  - ERR01 : If the Settings change are unavailable
+            //  - ERR02 : If the popup has failed to open
+            //  - ERR03 : Internal error
+          }
+        }
+      }
+    }
+    
+   
+    useEffect(() => {
+        console.log(route.params.livestockAttributes);
+        handleEnabledPressed()
+         //getCurrentLocation()
+    }, [])
+    useEffect(() => {
+        const backHandler = BackHandler.addEventListener(
+            "hardwareBackPress",
+            () => {
+                navigation.goBack();
+                return true;
+            }
+        );
+
+        return () => backHandler.remove();
+    }, [navigation]);
+
+    async function handleEnabledPressed() {
+        if (Platform.OS === 'android') {
+          try {
+            const enableResult = await promptForEnableLocationIfNeeded();
+            console.log('enableResult', enableResult);
+            requestLocationPermission();
+      
+            // The user has accepted to enable the location services
+            // data can be :
+            //  - "already-enabled" if the location services has been already enabled
+            //  - "enabled" if user has clicked on OK button in the popup
+          } catch (error) {
+            if (error instanceof Error) {
+              console.error(error.message);
+              // The user has not accepted to enable the location services or something went wrong during the process
+              // "err" : { "code" : "ERR00|ERR01|ERR02|ERR03", "message" : "message"}
+              // codes :
+              //  - ERR00 : The user has clicked on Cancel button in the popup
+              //  - ERR01 : If the Settings change are unavailable
+              //  - ERR02 : If the popup has failed to open
+              //  - ERR03 : Internal error
+            }
+          }
+        }
+      }
+      const requestLocationPermission = async () => {
+        try {
+          const granted = await PermissionsAndroid.requestMultiple([
+            PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+            PermissionsAndroid.PERMISSIONS.ACCESS_COARSE_LOCATION
+          ]);
+          if (
+            granted[PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION] === PermissionsAndroid.RESULTS.GRANTED ||
+            granted[PermissionsAndroid.PERMISSIONS.ACCESS_COARSE_LOCATION] === PermissionsAndroid.RESULTS.GRANTED
+          ) {
+            console.log('Location permission already granted');
+            // Proceed to get the current location
+            getCurrentLocation();
+          } else {
+            console.log('Requesting location permission...');
+            const granted = await PermissionsAndroid.request(
+              locationPermission,
+              {
+                title: 'Location Permission',
+                message: 'This app requires access to your location.',
+                buttonPositive: 'OK',
+                buttonNegative: 'Cancel'
+              }
+            );
+      
+            if (granted === PermissionsAndroid.RESULTS.GRANTED) {
+              console.log('Location permission granted');
+              
+              getCurrentLocation();
+            } else {
+              console.log('Location permission denied');
+              // Handle case where location permission is denied
+            }
+          }
+        } catch (error) {
+          console.error('Error requesting location permission:', error);
+        }
+      };
     const handleSubmit = async () => {
+       
         if (images.length === 0) {
             Alert.alert('Validation Error', 'Select at least one image to proceed');
             return;
         }
         try {
-            const accessToken = await getAccessToken(); 
-            setIsLoading(true); 
-          let formData = new FormData();
-    
-          formData.append('title',parent );
-          formData.append('description', descriptionValue);
-        //   formData.append('images', "");
-        //   formData.append('thumbnail', "");
-        //   formData.append('video', "");
-        if (!lat || !lng ) {
-            console.log('current');
-            formData.append('location', JSON.stringify([position.coords.latitude, position.coords.longitude])); 
-        }else{
-            console.log('manual');
-            formData.append('location', JSON.stringify([lat,lng])); 
-        }
-          formData.append('categoryId', mainid);
-          formData.append('subCategoryId', catIds[0].parentData._id);
-          formData.append('subSubCategoryId',id);
-          formData.append('place', place);
-          formData.append('listingType',typevalue );
-          formData.append('price', priceValue);
-          formData.append('rentDuration', renttype);
-          if (mainid === '65fc731c2e0b4ae365115908') {
-            formData.append('attributes', JSON.stringify(livestockAttributes));
-        } else {
-            formData.append('attributes', JSON.stringify(farmEquipmentsAttributes));
-        }
-          images.forEach((image, index) => {
-            const imageUriParts = image.split('.');
-            const fileType = imageUriParts[imageUriParts.length - 1];
+            if (isLoading) return;
 
-            formData.append(`images`, {
-                uri: image,
-                name: `photo_${index}.${fileType}`,
-                type: `image/${fileType}`,
-            });
-        });
-        if (videoUri) {
-            const videoUriParts = videoUri.split('.');
-            const videoType = videoUriParts[videoUriParts.length - 1];
+            setIsLoading(true);
+            const accessToken = await getAccessToken();
+            const lang = await getAcceptLanguage();
 
-            formData.append('video', {
-                uri: videoUri,
-                name: `video.${videoType}`,
-                type: `video/${videoType}`,
+            //    setIsLoading(true); 
+            let formData = new FormData();
+
+            formData.append('title', parent);
+            formData.append('description', descriptionValue);
+            //   formData.append('images', "");
+            //   formData.append('thumbnail', "");
+            //   formData.append('video', "");
+            if (!lat || !lng) {
+                console.log("below if");
+                console.log('current_live', position.position.coords.latitude, position.position.coords.longitude);
+                formData.append('location', JSON.stringify([position.position.coords.latitude, position.position.coords.longitude]));
+                
+            } else {
+                console.log('manual');
+                formData.append('location', JSON.stringify([lat, lng]));
+                formData.append('place', place);
+            }
+            formData.append('categoryId', mainid);
+            formData.append('subCategoryId', catIds[0].parentData._id);
+            formData.append('subSubCategoryId', id);
+            formData.append('listingType', typevalue);
+            formData.append('price', priceValue);
+            formData.append('rentDuration', renttype);
+            if (mainid === '6667fc6ba90178b6862b10d1') {
+                formData.append('attributes', JSON.stringify(livestockAttributes));
+            } else {
+                formData.append('attributes', JSON.stringify(farmEquipmentsAttributes));
+            }
+            images.forEach((image, index) => {
+                const imageUriParts = image.split('.');
+                const fileType = imageUriParts[imageUriParts.length - 1];
+
+                formData.append(`images`, {
+                    uri: image,
+                    name: `photo_${index}.${fileType}`,
+                    type: `image/${fileType}`,
+                });
             });
-        }
-          console.log("form",formData);
-          const response = await axios.post(
-            `${BASE_URL}/product`,
-             formData, {
-            headers: {
-              'Content-Type': 'multipart/form-data',
-              'Authorization': `Bearer ${accessToken}`,
-              'x-api-key': API_KEY,
-              'Accept-Language': ACCEPT_LANGUAGE,
-            },
-          });
-    
-          // Handle the response accordingly
-          console.log('API Response:', response.data);
-          alertSubmit()
+            if (videoUri) {
+                const videoUriParts = videoUri.split('.');
+                const videoType = videoUriParts[videoUriParts.length - 1];
+
+                formData.append('video', {
+                    uri: videoUri,
+                    name: `video.${videoType}`,
+                    type: `video/${videoType}`,
+                });
+            }
+            console.log("form", formData);
+            const response = await axios.post(
+                `${BASE_URL}/product`,
+                formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                    'Authorization': `Bearer ${accessToken}`,
+                    'x-api-key': API_KEY,
+                    'Accept-Language': lang,
+                },
+            });
+
+            // Handle the response accordingly
+            console.log('API Response:', response.data);
+            alertSubmit()
         } catch (error) {
-          console.error('API Error:',  error);
-         
+            console.log('API Error:', error.message);
+
         } finally {
             setIsLoading(false);
         }
-      };
+    };
     const alertSubmit = () => {
 
         Alert.alert(
@@ -203,20 +334,23 @@ const UploadImages = ({ navigation, navigation: { goBack },route }) => {
             { cancelable: false }
         );
     };
-    const getCurrentLocation = () =>{
+    const getCurrentLocation = () => {
         Geolocation.getCurrentPosition(
-          (position) => {
-            console.log(position);
-            setPosition(position);
-          },
-          (error) => {
-            // See error code charts below.
-            console.log(error.code, error.message);
-          },
-          { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 }
-      );
-       }
-
+            (position) => {
+                console.log("Current Location:", position);
+               setPosition({position});
+            },
+            (error) => {
+                console.error("Error getting location:", error.message);
+                Alert.alert(
+                    "Location Error",
+                    "Unable to fetch your location. Please try again or check your GPS settings."
+                );
+            },
+            
+        );
+    };
+    
     const toggleModal = () => {
         setModalVisible(!isModalVisible);
     };
@@ -240,13 +374,14 @@ const UploadImages = ({ navigation, navigation: { goBack },route }) => {
     //   };
     const handleImagePicker = async () => {
         try {
-            const images = await ImagePicker.openPicker({
+            const selectedImages = await ImagePicker.openPicker({
                 multiple: true,
                 mediaType: 'photo',
                 compressImageQuality: 0.8,
             });
 
-            setImages([...images.map((image) => image.path)]);
+            setImages(prevImages => [...prevImages, ...selectedImages.map(image => image.path)]);
+            toggleModal(); 
         } catch (error) {
             console.log(error);
         }
@@ -258,8 +393,33 @@ const UploadImages = ({ navigation, navigation: { goBack },route }) => {
             });
 
             setVideoUri(video.path);
+            toggleModal(); 
         } catch (error) {
             console.log(error);
+        }
+    };
+    const checkCameraPermission = async () => {
+        if (Platform.OS === 'android') {
+            try {
+                const granted = await PermissionsAndroid.request(
+                    PermissionsAndroid.PERMISSIONS.CAMERA,
+                    {
+                        title: 'Camera Permission',
+                        message: 'This app needs camera permission to take photos.',
+                        buttonPositive: 'OK',
+                        buttonNegative: 'Cancel',
+                    }
+                );
+                if (granted === PermissionsAndroid.RESULTS.GRANTED) {
+                    console.log('Camera permission granted');
+                    // Now you can open the camera
+                    handleCameraCapture();
+                } else {
+                    console.log('Camera permission denied');
+                }
+            } catch (error) {
+                console.error('Error checking camera permission:', error);
+            }
         }
     };
 
@@ -276,33 +436,44 @@ const UploadImages = ({ navigation, navigation: { goBack },route }) => {
         launchCamera(options, async (response) => {
             if (!response.didCancel && !response.error) {
                 const newImages = [...images, response.assets[0].uri];
-                setImages(newImages.slice(-5)); // Keep only the latest 5 images
+                setImages(prevImages => [...prevImages, response.assets[0].uri]);
+                toggleModal(); 
             }
         });
     };
 
+    const handleRemoveImage = (id) => {
+
+        const updatedImages = images.filter((image) => image !== id);
+        setImages(updatedImages);
+    };
+    const handleRemoveVideo = () => {
+        // Logic to remove the video
+        setVideoUri(null); // Assuming setVideoUri is the setter function for videoUri state
+    };
+
     return (
         <ScrollView
-    contentContainerStyle={styles.body}
-    showsVerticalScrollIndicator={false}
-    keyboardShouldPersistTaps="handled" // Allow tapping outside of text inputs to dismiss keyboard
-  >
-             
+            contentContainerStyle={styles.body}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled" // Allow tapping outside of text inputs to dismiss keyboard
+        >
+
             <View style={styles.rectangle}>
                 <Image style={styles.back}
                     source={require('../../assets/images/4.png')} />
                 <View style={{ justifyContent: 'space-between', alignItems: "center", flexDirection: "row", width: "100%", }}>
                     <View style={{ flexDirection: 'column' }}>
                         <Text style={styles.logintext}>
-                            Upload Images
+                        {languageData?.upload_images_Farmequipments_screen?.title}
                         </Text>
                     </View>
 
                 </View>
             </View>
 
-            <View style={{ flex: 1, backgroundColor: '#F3FBF4', width: '95%', top: 20, marginBottom: 10, }}>
-           
+            <View style={{ flex: 1, backgroundColor: '#FFFFF', width: '95%', top: 20, marginBottom: 10, }}>
+
                 <View style={{ flexDirection: 'column', width: '80%', marginTop: '5%' }}>
                     <TouchableOpacity
                         style={styles.categoriesBox}
@@ -311,47 +482,62 @@ const UploadImages = ({ navigation, navigation: { goBack },route }) => {
                         <Image
                             source={require('../../assets/images/camerasell.png')} />
                         <Text style={{ color: 'black', fontSize: 14, top: 10 }}>
-                            Upload Images
+                        {languageData?.upload_images_Farmequipments_screen?.upload_images_text}
+
                         </Text>
                     </TouchableOpacity>
                 </View>
-                <View style={{ top: 10 }}>
-                {isLoading && (
-                <View style={styles.loadingContainer}>
-                    <ActivityIndicator size="large" color="#539F46" />
-                </View>
-            )}
+                <View style={{ top: 10,  }}>
+                    {/* {isLoading && (
+                        <View style={styles.loadingContainer}>
+                            <ActivityIndicator size="large" color="#539F46" />
+                        </View>
+                    )} */}
+
                     <FlatList
                         data={images}
-                        keyExtractor={(item, index) => index.toString()}
-                        numColumns={3} // Display 3 images per row
+                        keyExtractor={(item) => item.id}
+                        numColumns={3}
                         renderItem={({ item }) => (
+                            <View style={styles.imageContainer}>
+                                <Image style={styles.images} source={{ uri: item }} />
+                                <TouchableOpacity style={styles.deleteIcon} onPress={() => {
 
-                            <Image
-                                style={{ width: '30%', aspectRatio: 1, borderWidth: 2, borderColor: "#62A845", margin: '1%' }}
-                                source={{ uri: item }}
-                            />
-
+                                    handleRemoveImage(item)
+                                }}>
+                                    <Image source={require('../../assets/images/remove.png')} style={styles.removeIcon} />
+                                </TouchableOpacity>
+                            </View>
                         )}
                     />
                 </View>
 
                 {videoUri && (
-                <Video
-                    source={{ uri: videoUri }}
-                    style={{ width: '50%', aspectRatio: 1, borderWidth: 2, borderColor: "#62A845", margin: '1%',top:'2%' }}
-                    controls
-                />
-            )}
+                    <View style={styles.videoContainer}>
+                    <Video
+                        source={{ uri: videoUri }}
+                        style={{ height:'100%',width: '100%', aspectRatio: 1,  margin: '1%', top: '2%' }}
+                        controls
+                    />
+                    <TouchableOpacity style={styles.deleteIcon} onPress={handleRemoveVideo}>
+                        <Image source={require('../../assets/images/remove.png')} style={styles.removeIcon} />
+                    </TouchableOpacity>
+                </View>
+                )}
 
                 <CheckBox
-                    style={{ padding: 10 ,top:30}}
+                    style={{ padding: 10, top: 30 }}
                     onClick={handleCheckBoxClick}
                     isChecked={isChecked}
-                    rightText={mainid === '65fc731c2e0b4ae365115908' ? 'Good health declaration /Vaccine info' : 'Good condition & FC validation declaration'}
+                    rightText={mainid === '6667fc6ba90178b6862b10d1' ?
+                        languageData?.upload_images_screen?.health_declaration_field_name
+                        : 
+                         languageData?.upload_images_Farmequipments_screen?.good_condition_fc_validation_text
+
+                       }
                     rightTextStyle={{ fontSize: 16, color: 'black' }}
                 />
-                  {/* <View style={{ width: '50%', top: '13%' }}>
+                {/* <View style={{ width: '50%', top: '13%' }}>
                         <Text style={styles.detailsText}>
                             Location
                         </Text>
@@ -390,20 +576,20 @@ const UploadImages = ({ navigation, navigation: { goBack },route }) => {
 
 
 
-           
+
 
 
 
             <Modal isVisible={isModalVisible} onRequestClose={toggleModal}>
                 <View style={styles.modalContainer}>
                     <TouchableOpacity onPress={() => handleImagePicker('gallery')}>
-                        <Text style={styles.modalText}>Choose from Gallery</Text>
+                        <Text style={styles.modalText}>Choose from gallery</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity onPress={handleCameraCapture}>
-                        <Text style={styles.modalText}>Capture with Camera</Text>
+                    <TouchableOpacity onPress={checkCameraPermission}>
+                        <Text style={styles.modalText}>Capture with camera</Text>
                     </TouchableOpacity>
                     <TouchableOpacity onPress={handleVideoPicker}>
-                        <Text style={styles.modalText}>Upload Video</Text>
+                        <Text style={styles.modalText}>Upload video</Text>
                     </TouchableOpacity>
                     <TouchableOpacity onPress={toggleModal}>
                         <Text style={styles.modalText}>Cancel</Text>
@@ -418,7 +604,7 @@ const UploadImages = ({ navigation, navigation: { goBack },route }) => {
 
                 justifyContent: 'flex-end',
                 flexDirection: 'row',
-                backgroundColor: '#F3FBF4',
+                backgroundColor: '#FFFFFF',
                 marginHorizontal: 10,
                 marginBottom: 10
 
@@ -427,24 +613,35 @@ const UploadImages = ({ navigation, navigation: { goBack },route }) => {
                     style={styles.backButton}
                     onPress={() => { goBack() }}>
                     <Text style={{ fontSize: 18, color: 'black', fontWeight: '600' }}>
-                        Back
+                    {languageData?.upload_images_Farmequipments_screen?.back_button_text}
+
                     </Text>
 
                 </TouchableOpacity>
                 <TouchableOpacity
                     style={styles.nextButton}
                     onPress={() => {
-                       { mainid === '65fc731c2e0b4ae365115908' ? 
-                       livestockAttributes.push({ key: 'Good health declaration', value: isChecked }) 
-                       :
-                       farmEquipmentsAttributes.push({ key: 'Good condition & FC validation declaration', value: isChecked })
+                        {
+                            mainid === '6667fc6ba90178b6862b10d1' ?
+                            livestockAttributes.push({ key: 'Good health declaration', value: isChecked })
+                            :
+                            farmEquipmentsAttributes.push({ key: 'Good condition & FC validation declaration', value: isChecked })
 
-                    }
-                        
-                         handleSubmit() }}>
-                    <Text style={{ fontSize: 18, color: 'white', fontWeight: '600' }}>
-                        Submit
-                    </Text>
+                        }
+
+                        handleSubmit()
+                    }}
+                    disabled={isLoading} >
+                    {isLoading ? (
+                        // Show loader when submission process is ongoing
+                        <ActivityIndicator color="white" />
+                    ) : (
+                        // Show button text when not loading
+                        <Text style={{ fontSize: 18, color: "white", fontWeight: "600" }}>
+                           {languageData?.upload_images_Farmequipments_screen?.submit_button_text}
+
+                        </Text>
+                    )}
 
                 </TouchableOpacity>
 
@@ -456,9 +653,11 @@ const UploadImages = ({ navigation, navigation: { goBack },route }) => {
 const styles = StyleSheet.create({
     body: {
         backgroundColor: "white",
-          flexGrow: 1,
+        flexGrow: 1,
         alignItems: "center",
         justifyContent: 'center',
+        padding:'5%'
+
     },
     loadingContainer: {
         ...StyleSheet.absoluteFillObject,
@@ -466,6 +665,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         backgroundColor: '#fffff',
     },
+   
     categoriesBox: {
         height: 100,
         width: 125,
@@ -477,14 +677,48 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center'
     },
+    imageContainer: {
+        position: 'relative',
+        marginHorizontal: 10,
+        width: 110, // Adjust the width to maintain a proper grid layout
+        height: 110,
+    },
+    videoContainer: {
+        position: 'relative',
+        width: '50%',
+        aspectRatio: 1,
+        borderWidth: 2,
+        borderColor: "#62A845",
+        margin: '1%',
+        marginTop: '2%',
+      },
+    images: {
+        width: 120,
+        height: 100,
+        borderWidth: 2,
+        borderColor: '#62A845',
+        borderRadius: 10, // Optional for rounded corners
+
+
+    },
+    deleteIcon: {
+        position: 'absolute',
+        top: 0,
+        right: 0,
+        padding: 5,
+    },
+    removeIcon: {
+        width: 25,
+        height: 25,
+    },
     rectangle: {
         flexDirection: "row",
-        width: "90%",
+        width: "100%",
         height: 50,
         justifyContent: "space-between",
         alignItems: "center",
         top: 10,
-        left: 10,
+        
     },
     back: {
         height: 25,

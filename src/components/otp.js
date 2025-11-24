@@ -1,96 +1,95 @@
-import React, { useState } from "react";
-import { View, ScrollView, StyleSheet, Image, Text, Alert, TouchableOpacity, TextInput, BackHandler } from "react-native";
-// import WebView from 'react-native-webview';
+import React, { useState,useEffect } from "react";
+import { View, ScrollView, StyleSheet, Image, Text, Alert, TouchableOpacity, TextInput, BackHandler, ActivityIndicator } from "react-native";
 import axios from 'axios';
-import { BASE_URL, API_KEY, ACCEPT_LANGUAGE } from "./Api/apiConfig";
-import Toast from 'react-native-toast-message'; // Add this line
-
+import { BASE_URL, API_KEY, ACCEPT_LANGUAGE ,getAcceptLanguage} from "./Api/apiConfig";
+import Toast from 'react-native-toast-message';
+import RNFS from 'react-native-fs';
+import { useLanguage } from "./Api/LanguageContext";
 
 const OtpScreen = ({ navigation, navigation: { goBack } }) => {
   const [phoneNumber, setPhoneNumber] = useState('');
   const [phoneNumberError, setPhoneNumberError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const { languageData } = useLanguage();
 
   const handlePhoneNumberChange = (text) => {
     setPhoneNumber(text);
-    if (text.length !== 10) {
-      console.log("dd");
-      // setPhoneNumberError('Please enter a valid ten-digit phone number');
+  };
+
+  const handleSubmit = async () => {
+    if (phoneNumber.length !== 10) {
       Toast.show({
         type: 'error',
         text1: 'Error',
         text2: 'Please enter a valid ten-digit phone number',
-        
-        position:'top'
+        position: 'top',
+        topOffset: 23,
+        text1Style: { fontSize: 16, fontWeight: '400' }
       });
     } else {
-      setPhoneNumberError('');
-    }
-  };
+      setLoading(true);
+      try {
+        const lang = await getAcceptLanguage();
 
-
-  const handleSubmit = async () => {
-    if (!phoneNumber || phoneNumber.length !== 10) {
-      setPhoneNumberError('Please enter a valid ten-digit phone number');
-      return;
-    }
-    try {
-      const response = await axios.post(
-        `${BASE_URL}/auth/send-otp`,
-        {
-          phoneNumber: phoneNumber,
-        },
-        {
-          headers: {
-            'Content-Type': 'application/json',
-            'x-api-key': API_KEY,
-            'Accept-Language': ACCEPT_LANGUAGE,
+        const response = await axios.post(
+          `${BASE_URL}/auth/send-otp`,
+          {
+            phoneNumber: phoneNumber,
           },
-        }
-      );
+          {
+            headers: {
+              'Content-Type': 'application/json',
+              'x-api-key': API_KEY,
+              'Accept-Language': lang,
+            },
+          }
+        );
 
-      console.log('API Response:', response.data);
+        console.log('API Response:', response.data);
 
-      navigation.navigate('otpverify', {
-        phoneNumber: phoneNumber,
-        verificationCode: response.data.data.verificationCode,
-      });
-    } catch (error) {
-      console.error('API Error:', error.message);
-      Alert.alert('Error', 'Failed to send OTP. Please try again.'); // Display an error message to the user
+        navigation.navigate('otpverify', {
+          phoneNumber: phoneNumber,
+          verificationCode: response.data.data.verificationCode,
+        });
+      } catch (error) {
+        console.error('API Error:', error.message);
+        Alert.alert('Error', 'Failed to send OTP. Please try again.');
+      } finally {
+        setLoading(false);
+      }
     }
   };
+
   const handleBackPress = () => {
-    BackHandler.exitApp()
+    BackHandler.exitApp();
     return true;
   };
+
   return (
     <ScrollView
       showsVerticalScrollIndicator={false}
       contentContainerStyle={styles.body}>
       <View style={styles.rectangle}>
-        <TouchableOpacity onPress={() =>
-          handleBackPress()}>
+        {/* <TouchableOpacity onPress={() => handleBackPress()}>
           <Image style={styles.back}
             source={require('../assets/images/back.png')} />
-        </TouchableOpacity>
+        </TouchableOpacity> */}
 
         <View style={{ justifyContent: 'center', alignItems: "center", flexDirection: "row", flex: 1 }}>
           <Text style={styles.logintext}>
-            Login
+            {languageData?.login_screen?.title}
           </Text>
-          {/* <Image style={styles.image}
-          source={require('../assets/images/account_circle.png')} /> */}
         </View>
       </View>
-      <Toast/>
-     
+      <Toast />
+
       <Image style={styles.otp}
-        source={require('../assets/images/otp.png')} />
+        source={require('../assets/images/otp1.png')} />
       <Text style={{
         fontSize: 16,
         fontWeight: '700', color: 'black'
       }}>
-        Enter your Phone Number
+        {languageData?.login_screen?.content_1}
       </Text>
       <View style={{ flexDirection: 'row', width: '90%', justifyContent: 'space-around' }}>
         <View style={styles.regiontext}>
@@ -100,22 +99,16 @@ const OtpScreen = ({ navigation, navigation: { goBack } }) => {
         </View>
         <View style={styles.numberview}>
           <TextInput
-            placeholder="Enter Your Number"
+            placeholder= {languageData?.login_screen?.placeholder}
             placeholderTextColor='black'
             keyboardType="numeric"
             style={styles.numberinput}
             maxLength={10}
             value={phoneNumber}
             onChangeText={(text) => handlePhoneNumberChange(text)}
-
           />
-
-
         </View>
-
       </View>
-
-
 
       <View style={{
         flex: 1, width: '100%',
@@ -123,41 +116,44 @@ const OtpScreen = ({ navigation, navigation: { goBack } }) => {
       }}>
         <View style={styles.referalview}>
           <Text style={{ color: '#000000' }}>
-            Your phone number is your referral code
+          {languageData?.login_screen?.content_2}
           </Text>
         </View>
         <TouchableOpacity
           style={styles.button}
-          onPress={() => { handleSubmit() }}>
-          <Text style={{ fontSize: 18, color: 'white', fontWeight: '600' }}>
-            Submit
-          </Text>
-
+          onPress={() => { handleSubmit() }}
+          disabled={loading}>
+          {loading ? (
+            <ActivityIndicator size="small" color="#ffffff" />
+          ) : (
+            <Text style={{ fontSize: 18, color: 'white', fontWeight: '600' }}>
+              {languageData?.login_screen?.submitText}
+            </Text>
+          )}
         </TouchableOpacity>
       </View>
-
     </ScrollView>
-  )
-}
+  );
+};
+
 const styles = StyleSheet.create({
   body: {
     backgroundColor: "white",
     flexGrow: 1,
     alignItems: "center",
-
+    paddingVertical:'5%'
   },
   rectangle: {
     flexDirection: "row",
-    borderWidth: 1,
     width: "90%",
     height: 50,
+    borderWidth: 1,
     borderColor: "#509E46",
     borderRadius: 5,
     justifyContent: "space-between",
     alignItems: "center",
     top: 20,
     marginBottom: 50
-
   },
   regiontext: {
     flexDirection: "row",
@@ -171,7 +167,6 @@ const styles = StyleSheet.create({
     top: 20,
     left: 20,
     marginBottom: 50
-
   },
   numberview: {
     flexDirection: "row",
@@ -196,7 +191,6 @@ const styles = StyleSheet.create({
     top: 20,
     marginBottom: 30,
     marginHorizontal: 20
-
   },
   back: {
     height: 25,
@@ -206,19 +200,18 @@ const styles = StyleSheet.create({
   logintext: {
     fontSize: 18,
     fontWeight: '800',
-
     color: 'black'
   },
   numberinput: {
     fontSize: 16,
     fontWeight: '400',
-    top: 2,
     left: 5,
-    color: 'black'
+    color: 'black',
+    
   },
   otptext: {
     fontSize: 16,
-    fontWeight: '400',
+    fontWeight: '600',
     left: 5,
     color: 'black'
   },
@@ -230,8 +223,8 @@ const styles = StyleSheet.create({
   otp: {
     width: 160,
     height: 180,
+    marginBottom: 20
   },
-
   button: {
     backgroundColor: '#000000',
     borderRadius: 5,
@@ -247,19 +240,19 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: '15%',
     width: '100%',
-    marginHorizontal:'20%',
+    marginHorizontal: '20%',
     backgroundColor: 'white',
     padding: 10,
     alignItems: 'center',
-    borderRadius:10,
-    borderColor:'red',
-    borderWidth:2
+    borderRadius: 10,
+    borderColor: 'red',
+    borderWidth: 2
   },
   errorText: {
     color: 'black',
     fontWeight: 'bold',
-    fontSize:14
+    fontSize: 14
   },
+});
 
-})
 export default OtpScreen;

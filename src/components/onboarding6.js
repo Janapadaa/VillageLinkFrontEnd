@@ -1,7 +1,13 @@
 import React from "react";
 import { View, StyleSheet, Image, Text, TouchableOpacity } from "react-native";
+import { useNavigation } from '@react-navigation/native';
 
 const OnBoarding6 = () => {
+  const navigation = useNavigation();
+  const skip = () => {
+    navigation.navigate('otpscreen');
+    // navigation.navigate('privacypolicy');
+  }
   return (
     <View style={styles.body}>
       <View style={{ alignItems: 'center', top: '10%' }}>
@@ -42,7 +48,15 @@ const OnBoarding6 = () => {
         Switch Language and user Friendly
         </Text>
       </View>
-
+      <TouchableOpacity style={{alignItems:'center',top:'70%'}}>
+                <Text style={{ fontSize: 16,
+        fontWeight: '600',
+        color: '#35672D',
+        textDecorationLine: 'underline',}}
+        onPress={() => { skip() }}>
+                    Skip
+                </Text>
+            </TouchableOpacity>
 
 
 
@@ -54,7 +68,7 @@ const OnBoarding6 = () => {
 
 const styles = StyleSheet.create({
   body: {
-    backgroundColor: "#F8FFEF",
+    backgroundColor: '#FFFFFF',
     flex: 1,
     width: '100%',
 

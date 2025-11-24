@@ -1,11 +1,22 @@
-import React from 'react';
-import { View, Text, FlatList, StyleSheet,TouchableOpacity,Image } from 'react-native';
+import React,{useEffect} from 'react';
+import { View, Text, FlatList, StyleSheet,TouchableOpacity,Image, BackHandler } from 'react-native';
 
 const BuyNotification = ({ navigation, navigation: { goBack } }) => {
+  useEffect(() => {
+    const backHandler = BackHandler.addEventListener(
+      "hardwareBackPress",
+      () => {
+        navigation.goBack(); 
+        return true; 
+      }
+    );
+  
+    return () => backHandler.remove();
+  }, [navigation]);
     const notifications = [
-    { id: '1', message: 'Your purchase has been placed successfully.' },
-    { id: '2', message: 'Payment received for your listing.' },
-    { id: '3', message: 'Reminder: Don\'t forget to rate your recent purchase.' },
+    { id: '1', message: 'Your notification will appear here.' },
+    // { id: '2', message: 'Payment received for your listing.' },
+    // { id: '3', message: 'Reminder: Don\'t forget to rate your recent purchase.' },
     
   ];
 

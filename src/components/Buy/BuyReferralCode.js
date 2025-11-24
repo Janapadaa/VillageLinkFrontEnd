@@ -1,18 +1,43 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
-import { ACCEPT_LANGUAGE, API_KEY, BASE_URL, getAccessToken } from '../Api/apiConfig';
+import { View, Text, StyleSheet, TouchableOpacity, Image, BackHandler } from 'react-native';
+import { ACCEPT_LANGUAGE, API_KEY, BASE_URL, getAccessToken ,getAcceptLanguage} from '../Api/apiConfig';
 import axios from 'axios';
+import RNFS from 'react-native-fs';
 
 const BuyReferralCode = ({ navigation, navigation: { goBack } }) => {
   const [phoneNumber, setPhoneNumber] = useState('');
-
+  const [languageData, setLanguageData] = useState(null);
+  useEffect(() => {
+      const filePath = `${RNFS.DocumentDirectoryPath}/languageData.json`;
+  
+      RNFS.readFile(filePath, 'utf8')
+        .then((data) => {
+          setLanguageData(JSON.parse(data)); 
+        })
+        .catch((error) => {
+          console.error("Error reading file:", error);
+        });
+  }, []);
   useEffect(() => {
     getReferralcode();
   }, []);
+  React.useEffect(() => {
+    const backHandler = BackHandler.addEventListener(
+      "hardwareBackPress",
+      () => {
+        navigation.goBack(); 
+        return true; 
+      }
+    );
+  
+    return () => backHandler.remove();
+  }, [navigation]);
 
   const getReferralcode = async () => {
     try {
       const accessToken = await getAccessToken();
+      const lang = await getAcceptLanguage();
+
       const response = await axios.get(
         `${BASE_URL}/user`,
         {
@@ -20,7 +45,7 @@ const BuyReferralCode = ({ navigation, navigation: { goBack } }) => {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${accessToken}`,
             'x-api-key': API_KEY,
-            'Accept-Language': ACCEPT_LANGUAGE,
+            'Accept-Language': lang,
           },
         }
       );
@@ -44,11 +69,14 @@ const BuyReferralCode = ({ navigation, navigation: { goBack } }) => {
         </TouchableOpacity>
       </View>
       <View style={styles.content}>
-        <Text style={styles.referralCodeLabel}>Your Referral Code:</Text>
+        <Text style={styles.referralCodeLabel}>
+        {languageData?.referral_code_screen?.content_1}
+
+          </Text>
         <Text style={styles.referralCode} selectable={true}>{phoneNumber}</Text>
         <Text style={styles.description}>
-          Share 
-          this referral code with your friends to earn rewards!
+        {languageData?.referral_code_screen?.content_2}
+
         </Text>
         
         {/* <TouchableOpacity style={styles.copyButton} >
@@ -63,7 +91,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#fff',
-    padding: 16,
+    padding:'5%'
   },
   content: {
     top: 50,
@@ -74,6 +102,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     marginBottom: 8,
+    color:'black'
   },
   referralCode: {
     fontSize: 24,

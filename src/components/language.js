@@ -1,184 +1,200 @@
-import React, { useState } from "react";
-import { View, StyleSheet, Image, Text, TouchableOpacity } from "react-native";
+import React, { useState, useEffect } from "react";
+import { View, StyleSheet, Text, TouchableOpacity, BackHandler } from "react-native";
+import { setAcceptLanguage, BASE_URL,ACCEPT_LANGUAGE,API_KEY,getAccessToken } from "./Api/apiConfig";
+import axios from 'axios';
+import RNFS from 'react-native-fs';
+import { useLanguage } from "./Api/LanguageContext";
 
-const Language = ({navigation,route}) => {
-  const type = route?.params?.type
-  console.log("language",type);
+const Language = ({ navigation,route }) => {
+  const type = route?.params?.type;
+  console.log("language", type);
   const [selectedLanguage, setSelectedLanguage] = useState(null);
+  const { setLanguageData } = useLanguage();   // 👈 bring in setter
 
-
-  const handleLanguagePress = (language) => {
-    // Handle language selection as needed
+  const handleLanguagePress = async (language) => {
     console.log(`Selected language: ${language}`);
-    setSelectedLanguage((prevSelectedLanguage) =>
-    prevSelectedLanguage === language ? null : language
-  );
+    setSelectedLanguage(language);
+
+    // Map selected language to the corresponding API language code
+    const languageMap = {
+        English: "en",
+        Tamil: "ta",
+        Telugu: "te",
+        Kannada: "kn",
+        Hindi: "hi",
+    };
+
+    const selectedLangCode = languageMap[language] || "en"; 
+   await setAcceptLanguage(selectedLangCode);
+};
+const finalSubmit = async () => {
+  try {
+    const accessToken = await getAccessToken();
+    console.log("lan", ACCEPT_LANGUAGE);
+
+    const response = await axios.get(
+      `${BASE_URL}/language`,
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`,
+          'x-api-key': API_KEY,
+          'Accept-Language': ACCEPT_LANGUAGE,
+        },
+      }
+    );
+
+    console.log("language_response", response.data.data);
+
+    // Convert response data to a JSON string
+    const jsonData = JSON.stringify(response.data.data, null, 2);
+    
+    // Define file path
+    const filePath = `${RNFS.DocumentDirectoryPath}/languageData.json`;
+
+    // Save JSON response to a file
+    await RNFS.writeFile(filePath, jsonData, 'utf8');
+    console.log('Data saved to', filePath);
+    setLanguageData(response.data.data);
+
+    // Redirect to onboardingscreens
+    if(type === 'menu'){
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'buynavigationdrawer' }],
+      });    }else{
+      navigation.navigate('onboardingscreens');
+    }
+   
+
+  } catch (error) {
+    console.error('Error fetching user data:', error);
+  }
+};
+  useEffect(() => {
+    const backAction = () => {
+      BackHandler.exitApp();
+      return true;
+    };
+  
+    const backHandler = BackHandler.addEventListener(
+      "hardwareBackPress",
+      backAction
+    );
+  
+    return () => backHandler.remove();
+  }, []);
+  useEffect(() => {
+    const backHandler = BackHandler.addEventListener("hardwareBackPress", () => {
+      if (type === 'menu') {
+        navigation.navigate('buynavigationdrawer'); // Navigate to the menu screen
+      } else {
+        BackHandler.exitApp(); // Default back navigation
+      }
+      return true;
+    });
+
+    return () => backHandler.remove();
+  }, [navigation, type]);
+
+  const handleSubmit = () => {
+    navigation.navigate('buynavigationdrawer');
   };
 
-  const handleSubmit =() =>{
-    navigation.navigate('buynavigationdrawer'); 
-  }
-  const finalSubmit =() =>{
-    navigation.navigate('onboardingscreens'); 
-  }
+  
+
+  
+
   return (
     <View style={styles.body}>
       <View style={styles.rectangle}>
-        <Text style={styles.choosetext}>
-          Choose Language
-        </Text>
-        <Image style={styles.image}
-          source={require('../assets/images/g_translate.png')} />
+        <Text style={styles.choosetext}>Choose Language</Text>
       </View>
       <View style={styles.row}>
         <TouchableOpacity
           style={[
             styles.languageBox,
-            selectedLanguage === "English" && { backgroundColor: "#62A845" }, 
+            selectedLanguage === "English" && { backgroundColor: "#62A845" },
           ]}
           onPress={() => handleLanguagePress("English")}
         >
-          <View style={styles.row}>
-            <View>
-              <Image
-                source={require('../assets/images/roundimg.png')}
-                style={styles.roundImage}
-              />
-              <Image
-                source={require('../assets/images/A.png')}
-                style={styles.letterImage}
-              />
-            </View>
-            <View>
-              <Text style={styles.languageText}>English</Text>
-            </View>
+          <View>
+            <Text style={styles.languageText}>English</Text>
           </View>
-
         </TouchableOpacity>
         <TouchableOpacity
           style={[
             styles.languageBox,
-            selectedLanguage === "Tamil" && { backgroundColor: "#62A845" }, 
+            selectedLanguage === "Tamil" && { backgroundColor: "#62A845" },
+            
           ]}
-          onPress={() => handleLanguagePress("Tamil")}
+          //onPress={() => handleLanguagePress("Tamil")}
+          onPress={null}
         >
-          <View style={styles.row}>
-            <View>
-              <Image
-                source={require('../assets/images/roundimg.png')}
-                style={styles.roundImage}
-              />
-              <Image
-                source={require('../assets/images/அ.png')}
-                style={styles.letterImage}
-              />
-            </View>
-            <View>
-              <Text style={styles.languageText}>தமிழ்</Text>
-            </View>
+          <View >
+            <Text style={styles.comingSoon}>Coming soon..</Text>
+            <Text style={styles.comingSoon}> தமிழ்</Text>
           </View>
-
         </TouchableOpacity>
       </View>
       <View style={styles.row}>
-      <TouchableOpacity
+        <TouchableOpacity
           style={[
             styles.languageBox,
-            selectedLanguage === "Telugu" && { backgroundColor: "#62A845" }, 
+            selectedLanguage === "Telugu" && { backgroundColor: "#62A845" },
           ]}
           onPress={() => handleLanguagePress("Telugu")}
         >
-          <View style={styles.row}>
-            <View>
-              <Image
-                source={require('../assets/images/roundimg.png')}
-                style={styles.roundImage}
-              />
-              <Image
-                source={require('../assets/images/ఆ.png')}
-                style={styles.letterImage}
-              />
-            </View>
-            <View>
-              <Text style={styles.languageText}>తెలుగు</Text>
-            </View>
+          <View>
+            <Text style={styles.languageText}>తెలుగు</Text>
           </View>
-
         </TouchableOpacity>
-
         <TouchableOpacity
           style={[
             styles.languageBox,
-            selectedLanguage === "Kannada" && { backgroundColor: "#62A845" }, 
+            selectedLanguage === "Kannada" && { backgroundColor: "#62A845" },
           ]}
           onPress={() => handleLanguagePress("Kannada")}
         >
-          <View style={styles.row}>
-            <View>
-              <Image
-                source={require('../assets/images/roundimg.png')}
-                style={styles.roundImage}
-              />
-              <Image
-                source={require('../assets/images/అ.png')}
-                style={styles.letterImage}
-              />
-            </View>
-            <View>
-              <Text style={styles.languageText}>ಕನ್ನಡ</Text>
-            </View>
+          <View>
+            <Text style={styles.languageText}>ಕನ್ನಡ</Text>
           </View>
-
         </TouchableOpacity>
       </View>
       <View style={styles.row}>
-      <TouchableOpacity
+        <TouchableOpacity
           style={[
             styles.languageBox,
-            selectedLanguage === "Hindi" && { backgroundColor: "#62A845" }, 
+            selectedLanguage === "Hindi" && { backgroundColor: "#62A845" },
           ]}
-          onPress={() => handleLanguagePress("Hindi")}
+         // onPress={() => handleLanguagePress("Hindi")}
+          onPress={null}
         >
-          <View style={styles.row}>
-            <View>
-              <Image
-                source={require('../assets/images/roundimg.png')}
-                style={styles.roundImage}
-              />
-              <Image
-                source={require('../assets/images/अ.png')}
-                style={styles.letterImage}
-              />
-            </View>
-            <View>
-              <Text style={styles.languageText}>हिंदी</Text>
-            </View>
+          <View>
+            <Text style={styles.comingSoon}>Coming soon..</Text>
+            <Text style={styles.comingSoon}> हिंदी</Text>
           </View>
-
         </TouchableOpacity>
-
       </View>
-      <View style={{flex: 1,width:'100%',
-    justifyContent: 'flex-end',}}>
- <TouchableOpacity
-        style={styles.button}
-        onPress={() => { {type === 'menu' ? handleSubmit() : finalSubmit()} }}>      
-        <Text style={{ fontSize: 18, color: 'white', fontWeight: '600' }}>
-        Continue
-        </Text>
-
-      </TouchableOpacity>
+      <View style={{ flex: 1, width: '100%', justifyContent: 'flex-end' }}>
+        <TouchableOpacity
+          style={styles.button}
+          onPress={() => { finalSubmit() }}>
+          <Text style={{ fontSize: 18, color: 'white', fontWeight: '600' }}>
+            Continue
+          </Text>
+        </TouchableOpacity>
       </View>
-     
     </View>
-  )
-}
+  );
+};
+
 const styles = StyleSheet.create({
   body: {
     backgroundColor: "white",
     flex: 1,
     alignItems: "center",
-
+    paddingVertical:'5%'
   },
   rectangle: {
     flexDirection: "row",
@@ -187,23 +203,15 @@ const styles = StyleSheet.create({
     height: 50,
     borderColor: "#509E46",
     borderRadius: 5,
-    justifyContent: "space-between",
+    justifyContent: "center",
     alignItems: "center",
     top: 20,
     marginBottom: 50
-
-
   },
   choosetext: {
-    fontSize: 14,
-    fontWeight: '500',
-    left: 10,
+    fontSize: 18,
+    fontWeight: '700',
     color: 'black'
-  },
-  image: {
-    width: 30,
-    height: 30,
-    right: 10
   },
   row: {
     width: '80%',
@@ -212,37 +220,27 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   languageBox: {
-    flexDirection: "row",
     width: 135,
     height: 85,
     backgroundColor: "#F1F1F1",
     borderRadius: 5,
-    justifyContent: 'space-between',
+    justifyContent: 'center',
     alignItems: "center",
     marginHorizontal: 5,
-    position: 'relative',
+  },
+  comingSoon:{
+    fontSize: 14,
+    fontWeight: "bold",
+    color: 'black',
+    textAlign:'center',
+    opacity:0.5
+    
   },
   languageText: {
     fontSize: 16,
     fontWeight: "bold",
-    textAlign: "center",
-    top: 5,
-    left: 6,
-    color:'black'
-  },
-  roundImage: {
-    width: 40,
-    height: 40,
-    left: 11,
-    position: 'absolute',
-
-  },
-  letterImage: {
-    width: 25,
-    height: 25,
-    left: 19,
-    top: 9,
-    position: 'absolute',
+    color: 'black',
+    textAlign:'center'
   },
   button: {
     backgroundColor: '#000000',
@@ -255,6 +253,6 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     marginTop: 30
   }
+});
 
-})
 export default Language;

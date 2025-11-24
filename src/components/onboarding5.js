@@ -20,7 +20,7 @@ const OnBoarding5 = () => {
             Manures, Fertilizers and Pesticides
                 </Text>
                 <Text style={styles.welcometext}>
-                Available at janapada
+                Available at Village Link
                 </Text>
             </View>
                 

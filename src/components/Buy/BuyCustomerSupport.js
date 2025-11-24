@@ -1,23 +1,50 @@
-import React, { useState } from "react";
-import { View, Image, Text, TouchableOpacity, Alert, Linking, TextInput, StyleSheet, ScrollView } from "react-native";
-import { ACCEPT_LANGUAGE, API_KEY, BASE_URL, getAccessToken } from "../Api/apiConfig";
+import React, { useState,useEffect } from "react";
+import { View, Image, Text, TouchableOpacity, Alert, Linking, TextInput, StyleSheet, ScrollView, BackHandler } from "react-native";
+import { ACCEPT_LANGUAGE, API_KEY, BASE_URL, getAccessToken,getAcceptLanguage } from "../Api/apiConfig";
 import axios from "axios";
+import RNFS from 'react-native-fs';
 
+import { ALERT_TYPE, Dialog, AlertNotificationRoot, } from "react-native-alert-notification";
 
 const BuyCustomerSupport = ({ navigation, navigation: { goBack } }) => {
   const [message, setMessage] = useState("");
   const [supportResponse, setSupportResponse] = useState([]);
   // const [successMessage, setSuccessMessage] = useState(null);
+  const [languageData, setLanguageData] = useState(null);
+  useEffect(() => {
+      const filePath = `${RNFS.DocumentDirectoryPath}/languageData.json`;
+  
+      RNFS.readFile(filePath, 'utf8')
+        .then((data) => {
+          setLanguageData(JSON.parse(data)); 
+        })
+        .catch((error) => {
+          console.error("Error reading file:", error);
+        });
+  }, []);
 
   const ViewDetails = (categories) => {
   
     console.log(`Selected language: ${categories}`);
     navigation.navigate("buydetails");
   };
+  React.useEffect(() => {
+    const backHandler = BackHandler.addEventListener(
+      "hardwareBackPress",
+      () => {
+        navigation.goBack(); 
+        return true; 
+      }
+    );
+  
+    return () => backHandler.remove();
+  }, [navigation]);
 
   const sendRequest = async () => {
     try {
       const accessToken = await getAccessToken(); 
+      const lang = await getAcceptLanguage();
+
         const response = await axios.post(
           `${BASE_URL}/support`,
            {
@@ -29,14 +56,20 @@ const BuyCustomerSupport = ({ navigation, navigation: { goBack } }) => {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${accessToken}`,
                     'x-api-key': API_KEY,
-                    'Accept-Language': ACCEPT_LANGUAGE,
+                    'Accept-Language': lang,
                 },
             }
         );
         console.log("Support", response.data);
         setSupportResponse(response.data);
         // setSuccessMessage(response.data.message);
-        Alert.alert("Success", response.data.message);
+       
+        Dialog.show({
+          type: ALERT_TYPE.SUCCESS,
+          title: 'Succes',
+          textBody: response.data.message,
+          button: 'OK',
+        });
     } catch (error) {
         console.error('Error fetching subscription data:', error.message);
     }
@@ -44,7 +77,12 @@ const BuyCustomerSupport = ({ navigation, navigation: { goBack } }) => {
 
   const handleSend = () => {
     if (message.trim() === "") {
-      Alert.alert("Error", "Please type something before sending.");
+      Dialog.show({
+        type: ALERT_TYPE.WARNING,
+        title: 'Error',
+        textBody: 'Please type something before sending',
+        button: 'OK',
+      });
     } else {
       sendRequest();
       setMessage("");
@@ -65,7 +103,9 @@ const BuyCustomerSupport = ({ navigation, navigation: { goBack } }) => {
       </View>
 
       <View style={{ flexDirection: "row", justifyContent: "center", top: 10 }}>
-        <Text style={{ fontSize: 18, fontWeight: "700", top: "8%", color: "#539F46" }}>Contact Customer Support</Text>
+        <Text style={{ fontSize: 18, fontWeight: "700", top: "8%", color: "#539F46" }}>
+        {languageData?.contact_customer_support_screen?.title}
+        </Text>
       </View>
 
       <ScrollView style={{ top: "7%", flex: 1, marginBottom: 40 }} showsVerticalScrollIndicator={false}>
@@ -75,12 +115,15 @@ const BuyCustomerSupport = ({ navigation, navigation: { goBack } }) => {
           <TextInput
             style={styles.inputField}
             multiline
-            placeholder="Type your message here..."
+            placeholder={languageData?.contact_customer_support_screen?.message_placeholder}
+            placeholderTextColor={'black'}
             value={message}
             onChangeText={(text) => setMessage(text)}
           />
           <TouchableOpacity style={styles.sendButton} onPress={handleSend}>
-            <Text style={styles.sendButtonText}>Send</Text>
+            <Text style={styles.sendButtonText}>
+            {languageData?.contact_customer_support_screen?.send_button_text}
+              </Text>
           </TouchableOpacity>
           {/* {successMessage && (
             <View style={styles.successMessageContainer}>
@@ -88,6 +131,7 @@ const BuyCustomerSupport = ({ navigation, navigation: { goBack } }) => {
             </View>
           )} */}
         </View>
+        <AlertNotificationRoot/>
       </ScrollView>
     </View>
   );
@@ -97,6 +141,7 @@ const styles = StyleSheet.create({
   body: {
     backgroundColor: "white",
     flex: 1,
+    paddingVertical:'5%'
   },
   successMessageContainer: {
     marginTop: 20,
@@ -126,6 +171,8 @@ const styles = StyleSheet.create({
     padding: 10,
     height: 120,
     marginBottom: 16,
+    color:'black'
+    
   },
   sendButton: {
     backgroundColor: "#539F46",

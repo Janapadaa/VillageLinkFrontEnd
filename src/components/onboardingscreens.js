@@ -34,7 +34,7 @@ const OnBoardingScreens = (navigation) => {
     <OnBoarding3 key="3" />,
     // <OnBoarding4 key="4" />,
     // <OnBoarding5 key="5" />,
-    <OnBoarding6 key="6" />,
+    // <OnBoarding6 key="6" />,
     <OnBoarding7 key="7"/>
   ];
   return (

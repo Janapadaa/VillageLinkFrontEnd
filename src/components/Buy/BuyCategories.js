@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from "react";
-import { View, FlatList, StyleSheet, Image, Text, TouchableOpacity } from "react-native";
+import { View, FlatList, StyleSheet, Image, Text, TouchableOpacity, BackHandler } from "react-native";
 import { SearchBar } from 'react-native-elements';
 import { ScrollView, TextInput } from "react-native-gesture-handler";
 import axios from "axios";
-import { ACCEPT_LANGUAGE, API_KEY, BASE_URL, IMG_URL, getAccessToken } from "../Api/apiConfig";
+import { ACCEPT_LANGUAGE, API_KEY, BASE_URL, IMG_URL, getAccessToken,getAcceptLanguage } from "../Api/apiConfig";
+import { ALERT_TYPE, Dialog, AlertNotificationRoot,  } from "react-native-alert-notification";
+import Toast from 'react-native-toast-message'; // Add this line
+import RNFS from 'react-native-fs';
 
 const BuyCategories = ({ navigation, navigation: { goBack },route }) => {
     const parentId = route?.params?.id
@@ -11,21 +14,50 @@ const BuyCategories = ({ navigation, navigation: { goBack },route }) => {
     const [selectedCategories, setSelectedCategories] = useState(null);
     const [subcategories, setSubcategories] = useState([]);
     const isNextButtonDisabled = !selectedCategories;
-
+    const [page, setPage] = useState(1); // Initialize page number
+    const [hasMoreData, setHasMoreData] = useState(true);
+    const [totalCount, setTotalCount] = useState(null);
 
     useEffect(() => {
         subCategories()
     }, [])
+    useEffect(() => {
+        const backHandler = BackHandler.addEventListener(
+          "hardwareBackPress",
+          () => {
+            navigation.goBack(); 
+            return true; 
+          }
+        );
+      
+        return () => backHandler.remove();
+      }, [navigation]);
+
+      const [languageData, setLanguageData] = useState(null);
+      useEffect(() => {
+          const filePath = `${RNFS.DocumentDirectoryPath}/languageData.json`;
+      
+          RNFS.readFile(filePath, 'utf8')
+            .then((data) => {
+              setLanguageData(JSON.parse(data)); 
+            })
+            .catch((error) => {
+              console.error("Error reading file:", error);
+            });
+      }, []);
 
     const subCategories = async () => {
         try {
             const accessToken = await getAccessToken(); 
+            const lang = await getAcceptLanguage();
+
+            const skip = subcategories.length;
             const response = await axios.post(
                 `${BASE_URL}/category`,
                 {
                     "keyword": "",
                     "parentId": parentId,
-                    "skip": 0,
+                    "skip": skip,
                     "limit": 10
                 },
                 {
@@ -33,12 +65,21 @@ const BuyCategories = ({ navigation, navigation: { goBack },route }) => {
                         'Content-Type': 'application/json',
                         'Authorization': `Bearer ${accessToken}`,
                         'x-api-key': API_KEY,
-                        'Accept-Language': ACCEPT_LANGUAGE,
+                        'Accept-Language': lang,
                     },
                 }
             );
-            console.log("cat", response.data.data.list);
-            setSubcategories(response.data.data.list);
+            setTotalCount(response.data.data.total);
+
+            if (response.data.data.list.length === 0) {
+                setHasMoreData(false);
+              }
+        
+              // Merge the newly fetched data with the existing data
+              setSubcategories(prevSubcategories => [...prevSubcategories, ...response.data.data.list]);
+          
+            console.log("cat", response.data.data.total);
+            // setSubcategories(response.data.data.list);
 
         } catch (error) {
             console.error('Error fetching subscription data:', error.message);
@@ -62,6 +103,24 @@ const BuyCategories = ({ navigation, navigation: { goBack },route }) => {
       };
 
     const handleSubmit = (item) => {
+        if (!item || !item.length) {
+            Toast.show({
+                type: 'error',
+                text1: 'Select one',
+                text2: 'Please Select To Continue',
+                position:'top',
+                topOffset:23,
+                text1Style:{fontSize:16,fontWeight:'400'}
+              });
+            // Dialog.show({
+            //   type: ALERT_TYPE.WARNING,
+            //   title: 'Selection Error',
+            //   textBody: 'Please select at least one category.',
+            //   button: 'OK',
+            // });
+            return; 
+          }
+        
         const selectedCategory = subcategories.find(
             (category) => category._id === selectedCategories
           );
@@ -80,6 +139,13 @@ const BuyCategories = ({ navigation, navigation: { goBack },route }) => {
         navigation.navigate('filter');
     } 
 
+    const handleEndReached = () => {
+        if (hasMoreData) {
+          setPage(page + 1); // Increment the page number
+          subCategories(); // Fetch more data
+        }
+      };
+
 
     return (
         <View style={styles.body}>
@@ -93,65 +159,96 @@ const BuyCategories = ({ navigation, navigation: { goBack },route }) => {
       </TouchableOpacity> */}
             
             </View>
-              
+            <Toast/>
 
-           {parentId ==='65fc731c2e0b4ae365115908' ?<View style={{ flexDirection: 'row', justifyContent: 'center' }}>
+            {totalCount === 0 ?
+                        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', top: '3%', marginBottom: '10%' }}>
+                                       <Text style={{fontSize:16,fontWeight:'500',color:'black'}}>Coming Soon ...</Text>
+                          </View>
+               :
+               (
+                <>
+                 {parentId ==='6667fc6ba90178b6862b10d1' ?<View style={{ flexDirection: 'row', justifyContent: 'center' }}>
                 <Text style={{ fontSize: 14, fontWeight: '500', top: '8%', color: '#539F46' }}>
-                    Livestock
+                {languageData?.livestock_agri_produce_screen?.title}
                 </Text>
-                <Text style={{ fontSize: 14, fontWeight: '500', top: '8%', color: 'black', left: 5 }}>
+                {/* <Text style={{ fontSize: 14, fontWeight: '500', top: '8%', color: 'black', left: 5 }}>
                     Marketplace
-                </Text>
+                </Text> */}
             </View> : <View style={{ flexDirection: 'row', justifyContent: 'center' }}>
                 <Text style={{ fontSize: 14, fontWeight: '500', top: '8%', color: '#539F46' }}>
-                Farm Equipments 
+                {languageData?.farm_equipments_screen?.title}
                 </Text>
-                <Text style={{ fontSize: 14, fontWeight: '500', top: '8%', color: 'black', left: 5 }}>
+                {/* <Text style={{ fontSize: 14, fontWeight: '500', top: '8%', color: 'black', left: 5 }}>
                     Marketplace
-                </Text>
+                </Text> */}
             </View>} 
-            <View style={{flex: 1,justifyContent:'center',alignItems:'center',top:'3%',marginBottom:'10%'}}>
+            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', top: '3%', marginBottom: '10%' }}>
+            
             <FlatList
-        style={{ top: '10%', }}
-        data={subcategories}
-        keyExtractor={(item) => item._id}
-        numColumns={2} // Adjust the number of columns as needed
-        renderItem={({ item }) => (
-          <TouchableOpacity
-          style={[
-            styles.categoriesBox,
-            selectedCategories === item._id && { borderColor: "#62A845" },
-        ]}
-          onPress={() => handleSelectCategories(item._id)}
-          >
-            <Image
-              style={styles.livestocks}
-               source={{ uri: `${IMG_URL}${item.image}` }}
-
-            //  source={require('../../assets/images/livestock.png')}
+                style={{ top: '10%' }}
+                data={subcategories}
+                keyExtractor={(item) => item._id}
+                numColumns={2} // Adjust the number of columns as needed
+                renderItem={({ item }) => (
+                    <TouchableOpacity
+                        style={[
+                            styles.categoriesBox,
+                            selectedCategories === item._id && { borderColor: "#62A845" },
+                        ]}
+                        onPress={() => handleSelectCategories(item._id)}
+                    >
+                        <Image
+                            style={styles.livestocks}
+                            source={{ uri: `${IMG_URL}${item.image}` }}
+                        />
+                        <Text style={styles.categoriesText}>{item.title}</Text>
+                    </TouchableOpacity>
+                )}
+                onEndReached={handleEndReached} // Add event handler for reaching the end of the list
+                onEndReachedThreshold={0.5}
             />
-            <Text style={styles.categoriesText}>{item.title}</Text>
-          </TouchableOpacity>
-        )}
-      />
-                </View>
-          
-
-            <View style={{
+       
+    </View>
+    <View style={{
                 width: '100%',
                 justifyContent: 'flex-end',
             }}>
+                <AlertNotificationRoot/>
 
                 <TouchableOpacity
                     style={styles.button}
                     onPress={() => { handleSubmit(selectedCategories) }}
-                    disabled={isNextButtonDisabled}>
+                   >
+                    <Text style={{ fontSize: 18, color: 'white', fontWeight: '600' }}>
+                    {languageData?.livestock_agri_produce_screen?.next_button_text}
+                    </Text>
+
+                </TouchableOpacity>
+            </View>
+                </>
+               )}
+
+          
+         
+          
+   
+            {/* <View style={{
+                width: '100%',
+                justifyContent: 'flex-end',
+            }}>
+                <AlertNotificationRoot/>
+
+                <TouchableOpacity
+                    style={styles.button}
+                    onPress={() => { handleSubmit(selectedCategories) }}
+                   >
                     <Text style={{ fontSize: 18, color: 'white', fontWeight: '600' }}>
                         Next
                     </Text>
 
                 </TouchableOpacity>
-            </View>
+            </View> */}
         </View>
     )
 }
@@ -159,6 +256,7 @@ const styles = StyleSheet.create({
     body: {
         backgroundColor: "white",
         flex: 1,
+        paddingVertical:'5%'
     },
     livestocks: {
         height:70,

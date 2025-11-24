@@ -1,7 +1,44 @@
-import React from "react";
+import React,{useEffect,useState} from "react";
 import { View, StyleSheet, Image, Text, TouchableOpacity } from "react-native";
+import { useNavigation } from '@react-navigation/native';
+import { BackHandler } from 'react-native';
+import RNFS from 'react-native-fs';
+import { useLanguage } from "./Api/LanguageContext";
 
 const OnBoarding1 = () => {
+  const { languageData } = useLanguage();
+
+    // const [languageData, setLanguageData] = useState(null);
+    // useEffect(() => {
+    //     const filePath = `${RNFS.DocumentDirectoryPath}/languageData.json`;
+    
+    //     RNFS.readFile(filePath, 'utf8')
+    //       .then((data) => {
+    //         setLanguageData(JSON.parse(data)); 
+    //       })
+    //       .catch((error) => {
+    //         console.error("Error reading file:", error);
+    //       });
+    // }, []);
+    const navigation = useNavigation();
+    const skip = () => {
+        navigation.navigate('otpscreen');
+        // navigation.navigate('privacypolicy');
+      }
+      useEffect(() => {
+        const backAction = () => {
+          BackHandler.exitApp();
+          return true;
+        };
+    
+        const backHandler = BackHandler.addEventListener(
+          "hardwareBackPress",
+          backAction
+        );
+    
+        return () => backHandler.remove();
+      }, []);
+    
     return (
         <View style={styles.body}>
             <View style={{alignItems:'center',top:'10%'}}>
@@ -17,12 +54,24 @@ const OnBoarding1 = () => {
             </View>
             <View style={{alignItems:'center',top:'60%'}}>
             <Text style={styles.text}>
-                Namastae
+            {languageData?.intro_screen_1?.title}
+
                 </Text>
                 <Text style={styles.welcometext}>
-                Welcome to Janapada    
+                {languageData?.intro_screen_1?.content}  
                 </Text>
             </View>
+
+
+            <TouchableOpacity style={{alignItems:'center',top:'70%'}}>
+                <Text style={{ fontSize: 16,
+        fontWeight: '600',
+        color: '#35672D',
+        textDecorationLine: 'underline',}}
+        onPress={() => { skip() }}>
+                    {languageData?.intro_screen_1?.skipText}
+                </Text>
+            </TouchableOpacity>
                 
             
                 
@@ -35,7 +84,7 @@ const OnBoarding1 = () => {
 
 const styles = StyleSheet.create({
     body: {
-        backgroundColor: "#F8FFEF",
+        backgroundColor: '#FFFFFF',
         flex: 1,
         width: '100%',
         alignItems:'center',
